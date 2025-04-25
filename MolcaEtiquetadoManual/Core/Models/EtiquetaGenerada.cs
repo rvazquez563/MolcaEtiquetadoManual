@@ -12,7 +12,7 @@ namespace MolcaEtiquetadoManual.Core.Models
         public string EDUS { get; set; }  // Usuario transmisión
 
         [Column("EDDT")]
-        public DateTime EDDT { get; set; }  // Fecha de transmisión
+        public string EDDT { get; set; }  // Fecha de transmisión en juliana
 
         [Column("EDTN")]
         public string EDTN { get; set; }  // Número transmisión (MMDD)
@@ -48,7 +48,7 @@ namespace MolcaEtiquetadoManual.Core.Models
         public DateTime URDT { get; set; }  // Fecha de caducidad
 
         [Column("SEC")]
-        public int UsuarioId { get; set; }
+        public int SEC { get; set; }
 
         [Column("ESTADO")]
         public string ESTADO { get; set; }

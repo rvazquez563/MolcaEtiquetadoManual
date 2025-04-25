@@ -37,7 +37,7 @@ namespace MolcaEtiquetadoManual.Migrations
                 {
                     ID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    EDUS = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
+                    EDUS = table.Column<string>(type: "nvarchar(max)", maxLength: 4, nullable: false),
                     EDDT = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EDTN = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EDLN = table.Column<int>(type: "int", nullable: false),

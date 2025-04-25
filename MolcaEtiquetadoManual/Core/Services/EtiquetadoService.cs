@@ -13,7 +13,10 @@ namespace MolcaEtiquetadoManual.Core.Services
         {
             _repository = repository;
         }
-
+        public int GuardarEtiquetaConStoredProcedure(EtiquetaGenerada etiqueta)
+        {
+            return _repository.GuardarEtiquetaConStoredProcedure(etiqueta);
+        }
         public OrdenProduccion BuscarOrdenPorDun14(string dun14)
         {
             return _repository.BuscarOrdenPorDun14(dun14);
@@ -23,12 +26,18 @@ namespace MolcaEtiquetadoManual.Core.Services
         {
             _repository.GuardarEtiqueta(etiqueta);
         }
-
-        public int ObtenerSiguienteNumeroSecuencial()
+        public int ObtenerSiguienteNumeroSecuencialdeldia(string diajuliano)
         {
-            return _repository.ObtenerSiguienteNumeroSecuencial();
+            return _repository.ObtenerSiguienteNumeroSecuencialdeldia(diajuliano);
         }
-
+        public int ObtenerSiguienteNumeroSecuencial(string programaProduccion)
+        {
+            return _repository.ObtenerSiguienteNumeroSecuencial(programaProduccion);
+        }
+        public int ObtenerSiguienteNumeroPallet(string programaProduccion)
+        {
+            return _repository.ObtenerSiguienteNumeroPallet(programaProduccion);
+        }
         public List<EtiquetaGenerada> ObtenerEtiquetasGeneradas(DateTime fechaInicio, DateTime fechaFin)
         {
             return _repository.ObtenerEtiquetasGeneradas(fechaInicio, fechaFin);

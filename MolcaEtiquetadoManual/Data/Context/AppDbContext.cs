@@ -15,7 +15,7 @@ namespace MolcaEtiquetadoManual.Data.Context
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
-
+        
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<OrdenProduccion> OrdenesProduccion { get; set; }
         public DbSet<EtiquetaGenerada> EtiquetasGeneradas { get; set; }
@@ -62,7 +62,7 @@ namespace MolcaEtiquetadoManual.Data.Context
                 entity.Property(e => e.TDAY).HasColumnName("TDAY");
                 entity.Property(e => e.SHFT).HasColumnName("SHFT");
                 entity.Property(e => e.URDT).HasColumnName("URDT");
-                entity.Property(e => e.UsuarioId).HasColumnName("SEC");
+                entity.Property(e => e.SEC).HasColumnName("SEC");
                 entity.Property(e => e.ESTADO).HasColumnName("ESTADO");
                 entity.Property(e => e.URRF).HasColumnName("URRF");
             });

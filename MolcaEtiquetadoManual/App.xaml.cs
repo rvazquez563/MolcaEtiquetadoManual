@@ -36,10 +36,11 @@ namespace MolcaEtiquetadoManual
             services.AddTransient<Data.Repositories.EtiquetadoRepository>();
 
             // Registrar servicios
-         
-            services.AddTransient<IUsuarioService, UsuarioService>();
+             services.AddTransient<IUsuarioService, UsuarioService>();
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
-            //services.AddTransient<IPrintService, ZebraPrintService>();
+            services.AddTransient<ITurnoService, TurnoService>();
+
+           services.AddTransient<IPrintService, ZebraPrintService>();
             services.AddTransient<LoginWindow>();
             // Registrar el servicio de impresión Zebra
             // Ajusta la IP y el puerto según tu impresora

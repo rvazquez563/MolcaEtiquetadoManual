@@ -12,13 +12,15 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly IUsuarioService _usuarioService;
         private readonly IEtiquetadoService _etiquetadoService;
         private readonly IPrintService _printService;
+        private readonly ITurnoService _turnoService;
 
-        public LoginWindow(IUsuarioService usuarioService, IEtiquetadoService etiquetadoService, IPrintService printService)
+        public LoginWindow(IUsuarioService usuarioService, IEtiquetadoService etiquetadoService, IPrintService printService,ITurnoService turnoService)
         {
             InitializeComponent();
             _usuarioService = usuarioService ?? throw new ArgumentNullException(nameof(usuarioService));
             _etiquetadoService = etiquetadoService ?? throw new ArgumentNullException(nameof(etiquetadoService));
             _printService = printService ?? throw new ArgumentNullException(nameof(printService));
+            _turnoService = turnoService ?? throw new ArgumentNullException(nameof(turnoService)); ; // Inicializa el servicio de turnos
 
 
         }
@@ -41,7 +43,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                 if (usuario != null)
                 {
                     // Abrir ventana principal con el servicio de etiquetado
-                    var mainWindow = new MainWindow(usuario, _etiquetadoService, _usuarioService, _printService);
+                    var mainWindow = new MainWindow(usuario, _etiquetadoService, _usuarioService, _printService,_turnoService);
                     mainWindow.Show();
                     this.Close();
                 }

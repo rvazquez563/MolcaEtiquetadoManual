@@ -29,13 +29,13 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly Usuario _currentUser;
         private OrdenProduccion _currentOrden;
         private string _expectedBarcode;
-    
+        private EtiquetaGenerada etiactual;
         private readonly IUsuarioService _usuarioService;
         private readonly IPrintService _printService;
-        
+        private readonly ITurnoService _turnoService;
 
         public MainWindow(Usuario currentUser, IEtiquetadoService etiquetadoService,
-                      IUsuarioService usuarioService, IPrintService printService)
+                      IUsuarioService usuarioService, IPrintService printService, ITurnoService turnoService)
         {
             InitializeComponent();
 
@@ -43,6 +43,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             _etiquetadoService = etiquetadoService;
             _usuarioService = usuarioService;
             _printService = printService;
+            _turnoService = turnoService;
             // Inicializar el ListView
             ActivityLog.ItemsSource = new ObservableCollection<ActivityLogItem>();
 
@@ -61,7 +62,7 @@ namespace MolcaEtiquetadoManual.UI.Views
 
         private void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
         {
-            var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService);
+            var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,_turnoService);
             loginWindow.Show();
             this.Close();
         }
@@ -178,11 +179,35 @@ namespace MolcaEtiquetadoManual.UI.Views
 
             try
             {
+                var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+                string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
                 // Generar código de barras según especificación
-                _expectedBarcode = GenerarCodigoBarras(_currentOrden);
-
+                _expectedBarcode = GenerarCodigoBarras(_currentOrden, turnoActual, fechaProduccion);
+                var etiquetaGenerada = new EtiquetaGenerada
+                {
+                    EDUS = _currentUser.NombreUsuario, // O cualquier identificador del sistema de etiquetado
+                    EDDT = PasarFechaJuliana(fechaProduccion.ToString("ddMMyy")),//fecha juliana 
+                    EDTN = fechaProduccion.ToString("MMdd"), // Por ejemplo: 1125 para 25 de noviembre
+                    EDLN = _etiquetadoService.ObtenerSiguienteNumeroSecuencialdeldia(PasarFechaJuliana(fechaProduccion.ToString("ddMMyy"))),
+                    DOCO = _currentOrden.ProgramaProduccion,
+                    LITM = _currentOrden.NumeroArticulo,
+                    SOQS = _currentOrden.CantidadPorPallet,
+                    UOM1 = _currentOrden.UnidadMedida, // O la unidad de medida que corresponda
+                    LOTN = _currentOrden.ProgramaProduccion + turnoActual,
+                    EXPR = fechaProduccion.AddDays(_currentOrden.DiasCaducidad),
+                    TDAY = fechaProduccion.ToString("HHmmss"),
+                    SHFT = turnoActual,
+                    URDT = _currentOrden.FechaProduccionInicio.AddDays(_currentOrden.DiasCaducidad),//no se sabe este
+                    SEC = _etiquetadoService.ObtenerSiguienteNumeroSecuencial(_currentOrden.ProgramaProduccion),
+                    ESTADO = "1", // O cualquier estado que necesites
+                    URRF = _currentOrden.DUN14, // O cualquier referencia que necesites
+                    FechaCreacion = DateTime.Now,
+                    Confirmada = false
+                };
+                etiactual = etiquetaGenerada;
                 // Imprimir etiqueta (aquí implementarías el código real de impresión)
-                bool impresionExitosa = ImprimirEtiqueta(_currentOrden, _expectedBarcode);
+                _expectedBarcode = GenerarCodigoBarras(_currentOrden, turnoActual, fechaProduccion);
+                bool impresionExitosa = ImprimirEtiqueta(etiquetaGenerada, _expectedBarcode);
 
                 if (impresionExitosa)
                 {
@@ -204,16 +229,49 @@ namespace MolcaEtiquetadoManual.UI.Views
                 MessageBox.Show($"Error al imprimir la etiqueta: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        public static string PasarFechaJuliana(string fecha)
+        {
+            // La fecha llega como DDMMYY y la pasamos a juliana
+            // 114154
+            // Primer carácter: CENTURIA (1 es desde 2000)
+            // Carácter dos y tres: AÑO (14)
+            // TRES ULTIMOS CARACTERES: nro del día del año: 154 ES 03 de junio
+            try
+            {
+                // Validar que la fecha tenga el formato correcto
+                if (string.IsNullOrEmpty(fecha) || fecha.Length != 6)
+                    throw new ArgumentException("La fecha debe tener formato DDMMYY");
 
-        private string GenerarCodigoBarras(OrdenProduccion orden)
+                // Extraer día, mes y año
+                int dia = int.Parse(fecha.Substring(0, 2));
+                int mes = int.Parse(fecha.Substring(2, 2));
+                int año = 2000 + int.Parse(fecha.Substring(4, 2));
+
+                // Crear fecha
+                DateTime fechaAUsar = new DateTime(año, mes, dia);
+
+                // Calcular día juliano
+                int diaDelAño = fechaAUsar.DayOfYear;
+                string sDia = diaDelAño.ToString("000");
+                string sAño = fechaAUsar.ToString("yy");
+
+                // Retornar fecha juliana
+                return "1" + sAño + sDia;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al convertir fecha a formato juliano: {ex.Message}");
+            }
+        }
+        private string GenerarCodigoBarras(OrdenProduccion orden, string turnoActual, DateTime fechaProduccion)
         {
             // Según la especificación del documento
             string numeroArticulo = orden.NumeroArticulo.PadRight(8, '0'); // 8 caracteres
-            string fechaVencimiento = orden.FechaProduccionInicio.AddDays(orden.DiasCaducidad).ToString("ddMMyy");  // 6 caracteres
+            string fechaVencimiento = fechaProduccion.AddDays(orden.DiasCaducidad).ToString("ddMMyy");  // 6 caracteres
             string cantidadPallet = orden.CantidadPorPallet.ToString("D4"); // 4 caracteres
-            string fechaDeclaracion = DateTime.Now.ToString("ddMMyy"); // 6 caracteres
-            string horaDeclaracion = DateTime.Now.ToString("HHmmss"); // 6 caracteres
-            string lote = orden.Lote.PadRight(7, '0'); // 7 caracteres
+            string fechaDeclaracion = fechaProduccion.ToString("ddMMyy"); // 6 caracteres
+            string horaDeclaracion = fechaProduccion.ToString("HHmmss"); // 6 caracteres
+            string lote = (orden.ProgramaProduccion+turnoActual).PadRight(7, '0'); // 7 caracteres
 
             // Concatenar según la estructura definida en la especificación
             string codigoBarras = $"{numeroArticulo}{fechaVencimiento}{cantidadPallet}{fechaDeclaracion}{horaDeclaracion}{lote}";
@@ -221,15 +279,15 @@ namespace MolcaEtiquetadoManual.UI.Views
             return codigoBarras;
         }
 
-        private bool ImprimirEtiqueta(OrdenProduccion orden, string codigoBarras)
+        private bool ImprimirEtiqueta(EtiquetaGenerada etiqueta, string codigoBarras)
         {
             // Aquí implementarías el código real para enviar a la impresora
             // Por ahora, solo simulamos una impresión exitosa
 
             MessageBox.Show($"Simulando impresión de etiqueta:\n\n" +
-                           $"Artículo: {orden.NumeroArticulo} - {orden.Descripcion}\n" +
-                           $"Cantidad: {orden.CantidadPorPallet}\n" +
-                           $"Lote: {orden.Lote}\n" +
+                           $"Artículo: {etiqueta.LITM} - \n" +
+                           $"Cantidad: {etiqueta.SOQS}\n" +
+                           $"Lote: {etiqueta.LOTN}\n" +
                            $"Código de barras: {codigoBarras}",
                            "Impresión Simulada", MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -263,31 +321,13 @@ namespace MolcaEtiquetadoManual.UI.Views
             {
                 try
                 {
+
+                    // string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
+
                     // Guardar en la tabla de salida
-                    var etiquetaGenerada = new EtiquetaGenerada
-                    {
-                        EDUS = "KETAN1", // O cualquier identificador del sistema de etiquetado
-                        EDDT = DateTime.Now,
-                        EDTN = DateTime.Now.ToString("MMdd"), // Por ejemplo: 1125 para 25 de noviembre
-                        EDLN = _etiquetadoService.ObtenerSiguienteNumeroSecuencial(),
-                        DOCO = _currentOrden.ProgramaProduccion,
-                        LITM = _currentOrden.NumeroArticulo,
-                        SOQS = _currentOrden.CantidadPorPallet,
-                        UOM1 = "PK", // O la unidad de medida que corresponda
-                        LOTN = _currentOrden.Lote,
-                        EXPR = _currentOrden.FechaProduccionInicio.AddDays(_currentOrden.DiasCaducidad),
-                        TDAY = DateTime.Now.ToString("HHmmss"),
-                        //SHFT = _currentOrden.Turno,
-                        URDT = _currentOrden.FechaProduccionInicio.AddDays(_currentOrden.DiasCaducidad),
-                        UsuarioId = _currentUser.Id,
-                        ESTADO = "1", // O cualquier estado que necesites
-                        URRF = "", // O cualquier referencia que necesites
-                        FechaCreacion = DateTime.Now,
-                        Confirmada = true
-                    };
-
-                    _etiquetadoService.GuardarEtiqueta(etiquetaGenerada);
-
+                    var etiquetaGenerada = etiactual;
+                    etiquetaGenerada.Confirmada = true;
+                    _etiquetadoService.GuardarEtiquetaConStoredProcedure(etiquetaGenerada);
                     MessageBox.Show("¡Etiqueta verificada y registrada con éxito!", "Éxito", MessageBoxButton.OK, MessageBoxImage.Information);
 
                     // Limpiar y preparar para una nueva etiqueta
