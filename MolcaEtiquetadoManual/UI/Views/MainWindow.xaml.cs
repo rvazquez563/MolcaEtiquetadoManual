@@ -27,6 +27,7 @@ namespace MolcaEtiquetadoManual.UI.Views
     {
         private readonly IEtiquetadoService _etiquetadoService;
         private readonly Usuario _currentUser;
+        private readonly ILogService _logService;
         private OrdenProduccion _currentOrden;
         private string _expectedBarcode;
         private EtiquetaGenerada etiactual;
@@ -35,7 +36,8 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly ITurnoService _turnoService;
 
         public MainWindow(Usuario currentUser, IEtiquetadoService etiquetadoService,
-                      IUsuarioService usuarioService, IPrintService printService, ITurnoService turnoService)
+                      IUsuarioService usuarioService, IPrintService printService,
+                      ITurnoService turnoService, ILogService logService)
         {
             InitializeComponent();
 
@@ -44,29 +46,26 @@ namespace MolcaEtiquetadoManual.UI.Views
             _usuarioService = usuarioService;
             _printService = printService;
             _turnoService = turnoService;
+            _logService = logService;
+
             // Inicializar el ListView
             ActivityLog.ItemsSource = new ObservableCollection<ActivityLogItem>();
 
             txtUsuarioActual.Text = $"Usuario: {_currentUser.NombreUsuario}";
 
-        
-
-            _currentUser = currentUser;
-            _etiquetadoService = etiquetadoService;
-
-            txtUsuarioActual.Text = $"Usuario: {_currentUser.NombreUsuario}";
+            _logService.Information("Sesión iniciada - Usuario: {Username}", _currentUser.NombreUsuario);
 
             // Poner foco en el campo DUN14
             txtDun14.Focus();
         }
-
         private void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
         {
-            var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,_turnoService);
+            _logService.Information("Sesión cerrada - Usuario: {Username}", _currentUser.NombreUsuario);
+
+            var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService, _turnoService, _logService);
             loginWindow.Show();
             this.Close();
         }
-
         private void TxtDun14_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
@@ -86,12 +85,15 @@ namespace MolcaEtiquetadoManual.UI.Views
 
             if (string.IsNullOrEmpty(dun14))
             {
+                _logService.Warning("Intento de búsqueda con DUN14 vacío");
                 MessageBox.Show("Por favor, ingrese o escanee un código DUN14.", "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             try
             {
+                _logService.Information("Buscando orden con DUN14: {DUN14}", dun14);
+
                 // Buscar la orden en la base de datos
                 var orden = _etiquetadoService.BuscarOrdenPorDun14(dun14);
 
@@ -100,33 +102,39 @@ namespace MolcaEtiquetadoManual.UI.Views
                     // Guardar la orden actual
                     _currentOrden = orden;
 
+                    _logService.Information("Orden encontrada. ID: {ID}, Descripción: {Descripcion}",
+                        orden.Id, orden.Descripcion);
+
                     // Mostrar datos de la orden
                     MostrarDatosOrden(orden);
 
                     // Habilitar el botón de impresión
                     btnImprimirEtiqueta.IsEnabled = true;
 
-                    AddActivityLog( "Orden encontrada. Listo para imprimir.");
+                    AddActivityLog("Orden encontrada. Listo para imprimir.");
                 }
                 else
                 {
+                    _logService.Warning("No se encontró orden con DUN14: {DUN14}", dun14);
                     LimpiarDatosOrden();
-                    AddActivityLog( "No se encontró ninguna orden con ese código DUN14.");
+                    AddActivityLog("No se encontró ninguna orden con ese código DUN14.");
                     MessageBox.Show("No se encontró ninguna orden con ese código DUN14.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                AddActivityLog( $"Error al buscar la orden: {ex.Message}");
+                _logService.Error(ex, "Error al buscar orden con DUN14: {DUN14}", dun14);
+                AddActivityLog($"Error al buscar la orden: {ex.Message}");
                 MessageBox.Show($"Error al buscar la orden: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private void AddActivityLog(string message)
+        private void AddActivityLog(string message, ActivityLogItem.LogLevel level = ActivityLogItem.LogLevel.Info)
         {
             var logItem = new ActivityLogItem
             {
                 Description = message,
-                Time = DateTime.Now.ToString("HH:mm:ss")
+                Time = DateTime.Now.ToString("HH:mm:ss"),
+                Level = level
             };
 
             // Si aún no has inicializado la lista, hazlo
@@ -137,7 +145,7 @@ namespace MolcaEtiquetadoManual.UI.Views
 
             // Agrega el item a la lista
             var items = ActivityLog.ItemsSource as ObservableCollection<ActivityLogItem>;
-            items.Insert(0, logItem); // Inserta al principio para que los más recientes estén arriba
+            items.Insert(0, logItem); // Inserta al principio
         }
         private void MostrarDatosOrden(OrdenProduccion orden)
         {
@@ -211,7 +219,7 @@ namespace MolcaEtiquetadoManual.UI.Views
 
                 if (impresionExitosa)
                 {
-                    AddActivityLog("Etiqueta impresa. Por favor escanee el código para verificar.");
+                    AddActivityLog("Etiqueta impresa. Por favor escanee el código para verificar.", ActivityLogItem.LogLevel.Info);
 
                     // Habilitar controles de verificación
                     txtCodigoVerificacion.IsEnabled = true;
@@ -220,12 +228,12 @@ namespace MolcaEtiquetadoManual.UI.Views
                 }
                 else
                 {
-                    AddActivityLog( "Error al imprimir la etiqueta. Intente nuevamente.");
+                    AddActivityLog( "Error al imprimir la etiqueta. Intente nuevamente.", ActivityLogItem.LogLevel.Error);
                 }
             }
             catch (Exception ex)
             {
-                AddActivityLog( $"Error al imprimir la etiqueta: {ex.Message}");
+                AddActivityLog( $"Error al imprimir la etiqueta: {ex.Message}", ActivityLogItem.LogLevel.Error);
                 MessageBox.Show($"Error al imprimir la etiqueta: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -260,6 +268,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             }
             catch (Exception ex)
             {
+
                 throw new Exception($"Error al convertir fecha a formato juliano: {ex.Message}");
             }
         }
@@ -334,20 +343,20 @@ namespace MolcaEtiquetadoManual.UI.Views
                     txtDun14.Text = string.Empty;
                     txtCodigoVerificacion.Text = string.Empty;
                     LimpiarDatosOrden();
-                    AddActivityLog( "Etiqueta registrada. Listo para un nuevo proceso.");
+                    AddActivityLog( "Etiqueta registrada. Listo para un nuevo proceso.", ActivityLogItem.LogLevel.Info);
 
                     // Poner foco en el campo DUN14
                     txtDun14.Focus();
                 }
                 catch (Exception ex)
                 {
-                    AddActivityLog( $"Error al registrar la etiqueta: {ex.Message}");
+                    AddActivityLog( $"Error al registrar la etiqueta: {ex.Message}", ActivityLogItem.LogLevel.Error);
                     MessageBox.Show($"Error al registrar la etiqueta: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                AddActivityLog( "¡Error! El código escaneado no coincide con la etiqueta generada.");
+                AddActivityLog( "¡Error! El código escaneado no coincide con la etiqueta generada.", ActivityLogItem.LogLevel.Error);
                 MessageBox.Show("El código escaneado no coincide con la etiqueta generada. Por favor, verifique e intente nuevamente.", "Error de verificación", MessageBoxButton.OK, MessageBoxImage.Error);
                 txtCodigoVerificacion.Text = string.Empty;
                 txtCodigoVerificacion.Focus();

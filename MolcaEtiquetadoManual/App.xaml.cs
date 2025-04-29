@@ -4,12 +4,14 @@ using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Services;
 using MolcaEtiquetadoManual.Data;
 using MolcaEtiquetadoManual.Data.Context;
 using MolcaEtiquetadoManual.Data.Repositories;
 using MolcaEtiquetadoManual.UI.Views;
+using Serilog;
 
 namespace MolcaEtiquetadoManual
 {
@@ -27,14 +29,35 @@ namespace MolcaEtiquetadoManual
 
             Configuration = builder.Build();
 
-            // Configurar servicios
-            ServiceCollection services = new ServiceCollection();
-            ConfigureServices(services);
-            serviceProvider = services.BuildServiceProvider();
+            // Configurar Serilog
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(Configuration)
+                .CreateLogger();
+
+            try
+            {
+                Log.Information("Iniciando aplicación");
+
+                // Configurar servicios
+                ServiceCollection services = new ServiceCollection();
+                ConfigureServices(services);
+                serviceProvider = services.BuildServiceProvider();
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "La aplicación falló al iniciar");
+            }
         }
 
         private void ConfigureServices(ServiceCollection services)
         {
+            // Agregar Serilog a los servicios
+            services.AddLogging(loggingBuilder =>
+                loggingBuilder.AddSerilog(dispose: true));
+
+            // Registrar servicio de logging
+            services.AddSingleton<ILogService, LogService>();
+
             // Obtener la cadena de conexión desde la configuración
             string connectionString = Configuration.GetConnectionString("DefaultConnection");
 
@@ -76,15 +99,24 @@ namespace MolcaEtiquetadoManual
                 {
                     var context = services.GetRequiredService<AppDbContext>();
                     DbInitializer.Initialize(context);
+                    Log.Information("Base de datos inicializada correctamente");
                 }
                 catch (Exception ex)
                 {
+                    Log.Error(ex, "Error al inicializar la base de datos");
                     MessageBox.Show($"Error al inicializar la base de datos: {ex.Message}");
                 }
             }
 
             var loginWindow = serviceProvider.GetRequiredService<LoginWindow>();
             loginWindow.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            Log.Information("Cerrando aplicación");
+            Log.CloseAndFlush();
+            base.OnExit(e);
         }
     }
 }
