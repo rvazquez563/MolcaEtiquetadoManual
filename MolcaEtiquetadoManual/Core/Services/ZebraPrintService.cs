@@ -18,7 +18,8 @@ namespace MolcaEtiquetadoManual.Core.Services
         private readonly string _printerIp;
         private readonly int _printerPort;
 
-        public ZebraPrintService(string printerIp = "192.168.1.100", int printerPort = 9100)
+
+        public ZebraPrintService(string printerIp, int printerPort)
         {
             _printerIp = printerIp;
             _printerPort = printerPort;

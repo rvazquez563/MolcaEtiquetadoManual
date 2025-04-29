@@ -1,25 +1,33 @@
-﻿using System.Configuration;
-using System.Data;
+﻿using System;
+using System.IO;
 using System.Windows;
-
-using System;
-using System.Windows;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Services;
-using MolcaEtiquetadoManual.UI.Views;
-using MolcaEtiquetadoManual.Data.Context;
-using Microsoft.EntityFrameworkCore;
 using MolcaEtiquetadoManual.Data;
+using MolcaEtiquetadoManual.Data.Context;
+using MolcaEtiquetadoManual.Data.Repositories;
+using MolcaEtiquetadoManual.UI.Views;
 
 namespace MolcaEtiquetadoManual
 {
     public partial class App : Application
     {
         private ServiceProvider serviceProvider;
+        public static IConfiguration Configuration { get; private set; }
 
         public App()
         {
+            // Configurar acceso al archivo de configuración
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            Configuration = builder.Build();
+
+            // Configurar servicios
             ServiceCollection services = new ServiceCollection();
             ConfigureServices(services);
             serviceProvider = services.BuildServiceProvider();
@@ -27,24 +35,29 @@ namespace MolcaEtiquetadoManual
 
         private void ConfigureServices(ServiceCollection services)
         {
-            // Configurar la conexión a la base de datos (ajusta la cadena de conexión según tu entorno)
+            // Obtener la cadena de conexión desde la configuración
+            string connectionString = Configuration.GetConnectionString("DefaultConnection");
+
+            // Configurar DbContext
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer("Server=.;Database=EtiquetadoManual;Trusted_Connection=True;"));
+                options.UseSqlServer(connectionString));
+
+            // Obtener configuración de la impresora
+            var printerSection = Configuration.GetSection("PrinterSettings");
+            string printerIp = printerSection["IpAddress"];
+            int printerPort = int.Parse(printerSection["Port"]);
 
             // Registrar repositorios
-            services.AddTransient<Data.Repositories.UsuarioRepository>();
-            services.AddTransient<Data.Repositories.EtiquetadoRepository>();
+            services.AddTransient<UsuarioRepository>();
+            services.AddTransient<EtiquetadoRepository>();
 
             // Registrar servicios
-             services.AddTransient<IUsuarioService, UsuarioService>();
+            services.AddTransient<IUsuarioService, UsuarioService>();
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
             services.AddTransient<ITurnoService, TurnoService>();
 
-           services.AddTransient<IPrintService, ZebraPrintService>();
-            services.AddTransient<LoginWindow>();
-            // Registrar el servicio de impresión Zebra
-            // Ajusta la IP y el puerto según tu impresora
-            services.AddSingleton<IPrintService>(new ZebraPrintService("192.168.1.100", 9100));
+            // Configurar servicio de impresión con valores de configuración
+            services.AddSingleton<IPrintService>(new ZebraPrintService(printerIp, printerPort));
 
             // Registrar ventanas
             services.AddTransient<LoginWindow>();
@@ -54,6 +67,7 @@ namespace MolcaEtiquetadoManual
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
             // Inicializar la base de datos con datos
             using (var scope = serviceProvider.CreateScope())
             {
