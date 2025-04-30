@@ -1,404 +1,4 @@
-﻿<!-- UI/Views/MainWindow.xaml --><!--
-<Window x:Class="MolcaEtiquetadoManual.UI.Views.MainWindow"
-        
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        mc:Ignorable="d"
-        Title="Sistema de Etiquetado Manual" 
-        Height="700" Width="1000"
-        WindowStartupLocation="CenterScreen">
-
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        --><!-- Barra superior --><!--
-        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" Grid.Row="0">
-            <DockPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <materialDesign:PackIcon Kind="Barcode" Height="30" Width="30" VerticalAlignment="Center"/>
-                    <TextBlock Margin="8 0 0 0" VerticalAlignment="Center" FontSize="20">
-                        Sistema de Etiquetado Manual
-                    </TextBlock>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <TextBlock x:Name="txtUsuarioActual" 
-                               VerticalAlignment="Center" 
-                               Margin="0 0 8 0"/>
-                    <materialDesign:PackIcon Kind="Account" 
-                                             Height="24" 
-                                             Width="24" 
-                                             VerticalAlignment="Center"/>
-                    <Button Style="{StaticResource MaterialDesignFlatButton}"
-                            x:Name="btnCerrarSesion"
-                            Click="BtnCerrarSesion_Click"
-                            Margin="8 0 0 0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Cerrar sesión"/>
-                            <materialDesign:PackIcon Kind="Logout" 
-                                                     Margin="4 0 0 0"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-            </DockPanel>
-        </materialDesign:ColorZone>
-
-        --><!-- Contenido principal --><!--
-        <Grid Grid.Row="1" Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
-            --><!-- Sección de escaneo DUN14 --><!--
-            <GroupBox Header="Escaneo de DUN14" Grid.Row="0" Margin="0 0 0 20">
-                <Grid Margin="10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBox Grid.Column="0"
-                             x:Name="txtDun14"
-                             materialDesign:HintAssist.Hint="Escanee o ingrese código DUN14"
-                             Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                             FontSize="16"
-                             KeyDown="TxtDun14_KeyDown"
-                             Margin="0 0 10 0"/>
-
-                    <Button Grid.Column="1"
-                            Content="BUSCAR"
-                            x:Name="btnBuscar"
-                            Click="BtnBuscar_Click"
-                            Style="{StaticResource MaterialDesignRaisedButton}"/>
-                </Grid>
-            </GroupBox>
-
-            --><!-- Información de la orden --><!--
-            <GroupBox Header="Información de la Orden" Grid.Row="1" Margin="0 0 0 20">
-                <Grid Margin="10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    --><!-- Primera fila --><!--
-                    <StackPanel Grid.Column="0" Grid.Row="0" Margin="5">
-                        <TextBlock Text="Número de Artículo" FontWeight="Bold"/>
-                        <TextBox x:Name="txtNumeroArticulo" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Grid.Row="0" Margin="5">
-                        <TextBlock Text="Descripción" FontWeight="Bold"/>
-                        <TextBox x:Name="txtDescripcion" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Grid.Row="0" Margin="5">
-                        <TextBlock Text="Cantidad por Pallet" FontWeight="Bold"/>
-                        <TextBox x:Name="txtCantidadPallet" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    --><!-- Segunda fila --><!--
-                    <StackPanel Grid.Column="0" Grid.Row="1" Margin="5">
-                        <TextBlock Text="Programa de Producción" FontWeight="Bold"/>
-                        <TextBox x:Name="txtProgramaProduccion" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Grid.Row="1" Margin="5">
-                        <TextBlock Text="Turno" FontWeight="Bold"/>
-                        <TextBox x:Name="txtTurno" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Grid.Row="1" Margin="5">
-                        <TextBlock Text="Lote" FontWeight="Bold"/>
-                        <TextBox x:Name="txtLote" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    --><!-- Tercera fila --><!--
-                    <StackPanel Grid.Column="0" Grid.Row="2" Margin="5">
-                        <TextBlock Text="Fecha de Producción" FontWeight="Bold"/>
-                        <TextBox x:Name="txtFechaProduccion" IsReadOnly="True"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Grid.Row="2" Margin="5">
-                        <TextBlock Text="Fecha de Caducidad" FontWeight="Bold"/>
-                        <TextBox x:Name="txtFechaCaducidad" IsReadOnly="True"/>
-                    </StackPanel>
-                </Grid>
-            </GroupBox>
-
-            --><!-- Acciones --><!--
-            <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <Button x:Name="btnImprimirEtiqueta"
-                        Content="IMPRIMIR ETIQUETA"
-                        Click="BtnImprimirEtiqueta_Click"
-                        Style="{StaticResource MaterialDesignRaisedDarkButton}"
-                        Height="50"
-                        Width="200"
-                        Margin="0 20 0 0"
-                        IsEnabled="False"/>
-
-                <GroupBox Header="Verificación de Etiqueta" Margin="0 20 0 0" Width="400">
-                    <StackPanel Margin="10">
-                        <TextBlock Text="Escanee el código de barras de la etiqueta impresa:" Margin="0 0 0 10"/>
-                        <TextBox x:Name="txtCodigoVerificacion"
-                                 materialDesign:HintAssist.Hint="Código de verificación"
-                                 Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-                                 KeyDown="TxtCodigoVerificacion_KeyDown"
-                                 IsEnabled="False"/>
-                        <Button x:Name="btnVerificar"
-                                Content="VERIFICAR Y GUARDAR"
-                                Click="BtnVerificar_Click"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                Margin="0 15 0 0"
-                                IsEnabled="False"/>
-                    </StackPanel>
-                </GroupBox>
-            </StackPanel>
-
-            --><!-- Barra de estado --><!--
-            <TextBlock x:Name="txtEstado" 
-                       Grid.Row="3"
-                       Margin="10"
-                       HorizontalAlignment="Center"
-                       FontWeight="Bold"/>
-        </Grid>
-    </Grid>
-</Window>--><!--
-
-<Window x:Class="MolcaEtiquetadoManual.UI.Views.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Sistema de Etiquetado" 
-        Height="720" Width="1280"
-        WindowStartupLocation="CenterScreen"
-        Background="#f5f5f5">
-
-    <Window.Resources>
-        --><!-- Estilos modernos --><!--
-        <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="#2196F3"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="20,10"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1976D2"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="10"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.2"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
-
-    <Grid>
-        --><!-- Header --><!--
-        <Grid Height="60" VerticalAlignment="Top" Background="White">
-            <StackPanel Orientation="Horizontal" Margin="20,0">
-                <TextBlock Text="Sistema de Etiquetado" 
-                         VerticalAlignment="Center"
-                         FontSize="20"
-                         FontWeight="SemiBold"/>
-
-                <StackPanel Orientation="Horizontal" 
-                          HorizontalAlignment="Right"
-                          Margin="20,0">
-                    <TextBlock x:Name="txtUsuarioActual" 
-                             Text="Usuario: Admin"
-                             VerticalAlignment="Center"
-                             Margin="0,0,20,0"/>
-                    <Button Content="Cerrar Sesión"
-                            x:Name="btnCerrarSesion"
-                            Style="{StaticResource PrimaryButton}"
-                            Click="BtnCerrarSesion_Click"/>
-                </StackPanel>
-            </StackPanel>
-        </Grid>
-
-        --><!-- Contenido Principal --><!--
-        <Grid Margin="0,60,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="350"/>
-            </Grid.ColumnDefinitions>
-
-            --><!-- Panel Izquierdo --><!--
-            <ScrollViewer>
-                <StackPanel Margin="20">
-                    --><!-- Escáner --><!--
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Text="Escanear DUN-14"
-                                     FontSize="18" 
-                                     FontWeight="SemiBold"
-                                     Margin="0,0,0,20"/>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBox x:Name="txtDun14"
-                                       FontSize="16"
-                                       Padding="10"
-                                       Margin="0,0,10,0"/>
-
-                                <Button Grid.Column="1"
-                                        Content="Procesar"
-                                        x:Name="btnBuscar"
-                                        Style="{StaticResource PrimaryButton}"
-                                        Click="BtnBuscar_Click"/>       
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    --><!-- Información de Orden --><!--
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Text="Información de Orden"
-                                     FontSize="18"
-                                     FontWeight="SemiBold" 
-                                     Margin="0,0,0,20"/>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Margin="0,0,10,0">
-                                    <TextBlock Text="DUN-14"/>
-                                    <TextBlock x:Name="DunDisplay" 
-                                             Text="-"
-                                             FontSize="16"/>
-
-                                    <TextBlock Text="Producto"
-                                             Margin="0,20,0,0"/>
-                                    <TextBlock x:Name="txtDescripcion"
-                                             Text="-" 
-                                             FontSize="16"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="Cantidad"/>
-                                    <TextBlock x:Name="txtCantidadPallet"
-                                             Text="-"
-                                             FontSize="16"/>
-
-                                    <TextBlock Text="Fecha"
-                                             Margin="0,20,0,0"/>
-                                    <TextBlock x:Name="txtFechaProduccion"
-                                             Text="-"
-                                             FontSize="16"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <Button Content="Imprimir Etiqueta"
-                                    x:Name="btnImprimirEtiqueta"
-                                    Style="{StaticResource PrimaryButton}"
-                                    Margin="0,20,0,0"
-                                    HorizontalAlignment="Right"
-                                    Click="BtnImprimirEtiqueta_Click"/>
-                        </StackPanel>
-                    </Border>
-
-                    --><!-- Validación --><!--
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <TextBlock Text="Validación de Etiqueta"
-                                     FontSize="18"
-                                     FontWeight="SemiBold"
-                                     Margin="0,0,0,20"/>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBox x:Name="txtCodigoVerificacion"
-                                       FontSize="16"
-                                       Padding="10"
-                                       Margin="0,0,10,0"/>
-
-                                <Button Grid.Column="1"
-                                        Content="Validar"
-                                        x:Name="btnVerificar"
-                                        Style="{StaticResource PrimaryButton}"
-                                        Click="BtnVerificar_Click"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
-
-            --><!-- Panel Derecho --><!--
-            <Grid Grid.Column="1" Background="White">
-                <StackPanel Margin="20">
-                    <TextBlock Text="Actividad Reciente"
-                             FontSize="18"
-                             FontWeight="SemiBold"
-                             Margin="0,0,0,20"/>
-                    
-                    <ListView x:Name="ActivityLog"
-                            BorderThickness="0"
-                            MaxHeight="500">
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="0,10">
-                                    <TextBlock Text="{Binding Description}" 
-                                                TextWrapping="Wrap"
-                                                Foreground="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
-                                    <TextBlock Text="{Binding Time}"
-                                                Foreground="Gray"
-                                                FontSize="12"/>      
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </StackPanel>
-            </Grid>
-        </Grid>
-    </Grid>
-</Window>-->
-
+﻿
 
 <Window x:Class="MolcaEtiquetadoManual.UI.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -406,6 +6,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:MolcaEtiquetadoManual.UI.Controls"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="Sistema de Etiquetado Manual" 
@@ -445,48 +46,55 @@
 
         <!-- Barra superior -->
         <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" Grid.Row="0">
-            <DockPanel>
+            <DockPanel LastChildFill="False">
+                <!-- Lado izquierdo - Logo y título -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                     <materialDesign:PackIcon Kind="Barcode" Height="30" Width="30" VerticalAlignment="Center"/>
                     <TextBlock Margin="8 0 0 0" VerticalAlignment="Center" FontSize="20">
-                        Sistema de Etiquetado Manual
+                Sistema de Etiquetado Manual
                     </TextBlock>
                 </StackPanel>
 
+                <!-- Lado derecho - Información de usuario y botones -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <!-- Información de usuario -->
                     <TextBlock x:Name="txtUsuarioActual" 
-                               VerticalAlignment="Center" 
-                               Margin="0 0 8 0"/>
+                     VerticalAlignment="Center" 
+                     Margin="0 0 8 0"/>
+
                     <materialDesign:PackIcon Kind="Account" 
-                                             Height="24" 
-                                             Width="24" 
-                                             VerticalAlignment="Center"/>
+                                   Height="24" 
+                                   Width="24" 
+                                   VerticalAlignment="Center"/>
 
                     <!-- Botón de gestión de usuarios -->
                     <Button Style="{StaticResource MaterialDesignToolButton}"
-                            x:Name="btnUsuarios"
-                            ToolTip="Gestión de Usuarios"
-                            Margin="8 0"
-                            Click="BtnUsuarios_Click">
+                  x:Name="btnUsuarios"
+                  ToolTip="Gestión de Usuarios"
+                  Margin="8 0"
+                  Click="BtnUsuarios_Click">
                         <materialDesign:PackIcon Kind="AccountGroup" Height="24" Width="24"/>
                     </Button>
+
                     <!-- Botón de configuración de impresora -->
                     <Button Style="{StaticResource MaterialDesignToolButton}"
-                            x:Name="btnConfigImpresora"
-                            ToolTip="Configuración de impresora"
-                            Margin="8 0"
-                            Click="BtnConfigImpresora_Click">
+                  x:Name="btnConfigImpresora"
+                  ToolTip="Configuración de impresora"
+                  Margin="8 0"
+                  Click="BtnConfigImpresora_Click">
                         <materialDesign:PackIcon Kind="Printer" Height="24" Width="24"/>
                     </Button>
 
-                    <Button Style="{StaticResource MaterialDesignFlatButton}"
-                            x:Name="btnCerrarSesion"
-                            Click="BtnCerrarSesion_Click"
-                            Margin="8 0 0 0">
+                    <!-- Botón de cerrar sesión -->
+                    <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                  x:Name="btnCerrarSesion"
+                  Click="BtnCerrarSesion_Click"
+                  Margin="12 0 0 0"
+                  Background="{DynamicResource PrimaryHueDarkBrush}"
+                  Foreground="{DynamicResource PrimaryHueDarkForegroundBrush}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Cerrar sesión"/>
-                            <materialDesign:PackIcon Kind="Logout" 
-                                                     Margin="4 0 0 0"/>
+                            <TextBlock Text="Cerrar sesión" Margin="0 0 4 0"/>
+                            <materialDesign:PackIcon Kind="Logout"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -497,7 +105,7 @@
         <Grid Grid.Row="1" Margin="20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*"/>
-                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1.5*"/>
             </Grid.ColumnDefinitions>
 
             <!-- Panel izquierdo - Proceso principal -->
@@ -547,112 +155,141 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Numeric2CircleOutline" 
-                                                        Width="24" Height="24" 
-                                                        VerticalAlignment="Center"
-                                                        Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                    Width="24" Height="24" 
+                                    VerticalAlignment="Center"
+                                    Foreground="{DynamicResource PrimaryHueMidBrush}"/>
                                 <TextBlock Text="Información de la Orden" 
-                                         Style="{StaticResource ProcessStepTitle}"
-                                         Margin="8,0,0,10"/>
+                     Style="{StaticResource ProcessStepTitle}"
+                     Margin="8,0,0,10"/>
                             </StackPanel>
 
+                            <!-- Reorganizamos con un Grid que tenga dos columnas: Datos y Vista previa -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                                <!-- Panel izquierdo - Datos de la orden -->
+                                <Grid Grid.Column="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
 
-                                <!-- Detalles del producto -->
-                                <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,10,15">
-                                    <TextBlock Text="Número de Artículo" FontWeight="Medium"/>
-                                    <TextBox x:Name="txtNumeroArticulo" 
-                                           IsReadOnly="True"
-                                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                </StackPanel>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                                <StackPanel Grid.Column="1" Grid.Row="0" Margin="0,0,0,15">
-                                    <TextBlock Text="Descripción" FontWeight="Medium"/>
-                                    <TextBox x:Name="txtDescripcion" 
-                                           IsReadOnly="True"
-                                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                </StackPanel>
+                                    <!-- Detalles del producto -->
+                                    <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,10,15">
+                                        <TextBlock Text="Número de Artículo" FontWeight="Medium"/>
+                                        <TextBox x:Name="txtNumeroArticulo" 
+                           IsReadOnly="True"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                    </StackPanel>
 
-                                <!-- Detalles de producción -->
-                                <StackPanel Grid.Column="0" Grid.Row="1" Margin="0,0,10,15">
-                                    <TextBlock Text="Programa de Producción" FontWeight="Medium"/>
-                                    <TextBox x:Name="txtProgramaProduccion" 
-                                           IsReadOnly="True"
-                                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                </StackPanel>
+                                    <StackPanel Grid.Column="1" Grid.Row="0" Margin="0,0,0,15">
+                                        <TextBlock Text="Descripción" FontWeight="Medium"/>
+                                        <TextBox x:Name="txtDescripcion" 
+                           IsReadOnly="True"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                    </StackPanel>
 
-                                <StackPanel Grid.Column="1" Grid.Row="1" Margin="0,0,0,15">
-                                    <TextBlock Text="Cantidad por Pallet" FontWeight="Medium"/>
-                                    <TextBox x:Name="txtCantidadPallet" 
-                                           IsReadOnly="True"
-                                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                </StackPanel>
+                                    <!-- Detalles de producción -->
+                                    <StackPanel Grid.Column="0" Grid.Row="1" Margin="0,0,10,15">
+                                        <TextBlock Text="Programa de Producción" FontWeight="Medium"/>
+                                        <TextBox x:Name="txtProgramaProduccion" 
+                           IsReadOnly="True"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                    </StackPanel>
 
-                                <!-- Fechas y lote -->
-                                <StackPanel Grid.Column="0" Grid.Row="2" Margin="0,0,10,0">
-                                    <TextBlock Text="Turno / Lote" FontWeight="Medium"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="1" Grid.Row="1" Margin="0,0,0,15">
+                                        <TextBlock Text="Cantidad por Pallet" FontWeight="Medium"/>
+                                        <TextBox x:Name="txtCantidadPallet" 
+                           IsReadOnly="True"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                    </StackPanel>
 
-                                        <TextBox x:Name="txtTurno" 
-                                               Grid.Column="0"
-                                               Width="40"
-                                               IsReadOnly="True"
-                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                    <!-- Fechas y lote -->
+                                    <StackPanel Grid.Column="0" Grid.Row="2" Margin="0,0,10,0">
+                                        <TextBlock Text="Turno / Lote" FontWeight="Medium"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
 
-                                        <TextBox x:Name="txtLote" 
-                                               Grid.Column="1"
-                                               Margin="5,0,0,0"
-                                               IsReadOnly="True"
-                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                    </Grid>
-                                </StackPanel>
+                                            <TextBox x:Name="txtTurno" 
+                               Grid.Column="0"
+                               Width="40"
+                               IsReadOnly="True"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
-                                <StackPanel Grid.Column="1" Grid.Row="2" Margin="0,0,0,0">
-                                    <TextBlock Text="Fechas" FontWeight="Medium"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="txtLote" 
+                               Grid.Column="1"
+                               Margin="5,0,0,0"
+                               IsReadOnly="True"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                        </Grid>
+                                    </StackPanel>
 
-                                        <TextBox x:Name="txtFechaProduccion" 
-                                               Grid.Column="0"
-                                               materialDesign:HintAssist.Hint="Producción"
-                                               IsReadOnly="True"
-                                               Margin="0,0,5,0"
-                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                    <StackPanel Grid.Column="1" Grid.Row="2" Margin="0,0,0,0">
+                                        <TextBlock Text="Fechas" FontWeight="Medium"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
 
-                                        <TextBox x:Name="txtFechaCaducidad" 
-                                               Grid.Column="1"
-                                               materialDesign:HintAssist.Hint="Caducidad"
-                                               IsReadOnly="True"
-                                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                    </Grid>
-                                </StackPanel>
+                                            <TextBox x:Name="txtFechaProduccion" 
+                               Grid.Column="0"
+                               materialDesign:HintAssist.Hint="Producción"
+                               IsReadOnly="True"
+                               Margin="0,0,5,0"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
-                                <!-- Botón de impresión -->
-                                <Button x:Name="btnImprimirEtiqueta"
-                                      Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2"
-                                      Content="IMPRIMIR ETIQUETA"
-                                      Click="BtnImprimirEtiqueta_Click"
-                                      Style="{StaticResource MaterialDesignRaisedAccentButton}"
-                                      Margin="0,15,0,0"
-                                      HorizontalAlignment="Center"
-                                      IsEnabled="False"/>
+                                            <TextBox x:Name="txtFechaCaducidad" 
+                               Grid.Column="1"
+                               materialDesign:HintAssist.Hint="Caducidad"
+                               IsReadOnly="True"
+                               Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Panel derecho - Vista previa de etiqueta -->
+                                <Border Grid.Column="1" 
+                    Margin="15,0,0,0" 
+                    BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                    BorderThickness="1" 
+                    CornerRadius="4">
+                                    <DockPanel>
+                                        <TextBlock Text="Vista previa de etiqueta" 
+                             FontWeight="Medium" 
+                             DockPanel.Dock="Top" 
+                             Padding="10,10,10,5"
+                             Background="{DynamicResource MaterialDesignChipBackground}"/>
+
+                                        <!-- Referencia al control de vista previa -->
+                                        <local:EtiquetaPreviewControl x:Name="etiquetaPreview" 
+                                                Width="280" 
+                                                Height="300"
+                                                Margin="5"/>
+                                    </DockPanel>
+                                </Border>
                             </Grid>
+
+                            <!-- Botón de impresión - lo mantenemos abajo -->
+                            <Button x:Name="btnImprimirEtiqueta"
+                              Content="IMPRIMIR ETIQUETA"
+                              Click="BtnImprimirEtiqueta_Click"
+                              Style="{StaticResource MaterialDesignRaisedAccentButton}"
+                              Margin="0,15,0,0"
+                              HorizontalAlignment="Center"
+                              IsEnabled="False"/>   
                         </StackPanel>
                     </Border>
 

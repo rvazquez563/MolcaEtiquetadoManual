@@ -1,5 +1,4 @@
-﻿// Core/Services/ZXingBarcodeService.cs (Corregido)
-using System;
+﻿using System;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -33,6 +32,8 @@ namespace MolcaEtiquetadoManual.Core.Services
         {
             try
             {
+                _logService.Debug("Generando código de barras para etiqueta...");
+
                 // Según la especificación del documento:
                 // ITM(8) + URDT(6) + SOQS(4) + EDDT(6) + TDAY(6) + LOTN(7)
 
@@ -44,13 +45,15 @@ namespace MolcaEtiquetadoManual.Core.Services
                 string horaDeclaracion = DateTime.Now.ToString("HHmmss"); // 6 caracteres (HHMMSS)
                 string lote = etiqueta.LOTN.PadRight(7, '0'); // 7 caracteres 
 
+                _logService.Debug($"Componentes del código de barras: ITM={numeroArticulo}, URDT={fechaVencimiento}, SOQS={cantidadPallet}, EDDT={fechaDeclaracion}, TDAY={horaDeclaracion}, LOTN={lote}");
+
                 // Concatenar según la estructura definida
                 string codigoBarras = $"{numeroArticulo}{fechaVencimiento}{cantidadPallet}{fechaDeclaracion}{horaDeclaracion}{lote}";
 
                 // Verificar la longitud total (debe ser 37 caracteres)
                 if (codigoBarras.Length != 37)
                 {
-                    _logService.Warning("Longitud incorrecta del código de barras: {0} caracteres", codigoBarras.Length);
+                    _logService.Warning($"Longitud incorrecta del código de barras: {codigoBarras.Length} caracteres, esperados 37");
 
                     // Asegurar que tenga exactamente 37 caracteres
                     if (codigoBarras.Length < 37)
@@ -63,7 +66,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                     }
                 }
 
-                _logService.Debug("Código de barras generado: {0}", codigoBarras);
+                _logService.Debug($"Código de barras generado: {codigoBarras}");
                 return codigoBarras;
             }
             catch (Exception ex)
@@ -113,8 +116,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             }
             else
             {
-                _logService.Warning("Verificación de código de barras fallida. Esperado: {0}, Escaneado: {1}",
-                    esperado, escaneado);
+                _logService.Warning($"Verificación de código de barras fallida. Esperado: {esperado}, Escaneado: {escaneado}");
             }
 
             return coinciden;
@@ -128,7 +130,15 @@ namespace MolcaEtiquetadoManual.Core.Services
         {
             try
             {
-                // Usar BarcodeWriterPixelData en lugar de BarcodeWriter
+                if (string.IsNullOrEmpty(contenido))
+                {
+                    _logService.Warning("No se puede generar imagen de código de barras, contenido vacío");
+                    return null;
+                }
+
+                _logService.Debug($"Generando imagen de código de barras para: {contenido}");
+
+                // Crear un escritor de códigos de barras ZXing
                 var writer = new BarcodeWriterPixelData
                 {
                     Format = formato,
@@ -136,28 +146,38 @@ namespace MolcaEtiquetadoManual.Core.Services
                     {
                         Width = ancho,
                         Height = alto,
-                        Margin = 10,
+                        Margin = 5,
                         PureBarcode = false
                     }
                 };
 
-                var pixelData = writer.Write(contenido);
+                try
+                {
+                    // Generar el código de barras como PixelData
+                    var pixelData = writer.Write(contenido);
+                    _logService.Debug($"Código de barras generado correctamente. Dimensiones: {pixelData.Width}x{pixelData.Height}");
 
-                // Crear BitmapSource desde PixelData
-                var bitmap = BitmapSource.Create(
-                    pixelData.Width,
-                    pixelData.Height,
-                    96, 96,
-                    PixelFormats.Bgr32,
-                    null,
-                    pixelData.Pixels,
-                    pixelData.Width * 4);
+                    // Crear BitmapSource desde PixelData
+                    var bitmap = BitmapSource.Create(
+                        pixelData.Width,
+                        pixelData.Height,
+                        96, 96,
+                        PixelFormats.Bgr32,
+                        null,
+                        pixelData.Pixels,
+                        pixelData.Width * 4);
 
-                return bitmap;
+                    return bitmap;
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error al generar datos de píxeles para el código de barras");
+                    return null;
+                }
             }
             catch (Exception ex)
             {
-                _logService.Error(ex, "Error al generar imagen de código de barras");
+                _logService.Error(ex, "Error general al generar imagen de código de barras");
                 return null;
             }
         }
@@ -170,30 +190,13 @@ namespace MolcaEtiquetadoManual.Core.Services
         {
             try
             {
-                // Usar BarcodeWriterPixelData en lugar de BarcodeWriter
-                var writer = new BarcodeWriterPixelData
+                var bitmap = GenerarImagenCodigoBarras(contenido, formato, ancho, alto);
+
+                if (bitmap == null)
                 {
-                    Format = formato,
-                    Options = new EncodingOptions
-                    {
-                        Width = ancho,
-                        Height = alto,
-                        Margin = 10,
-                        PureBarcode = false
-                    }
-                };
-
-                var pixelData = writer.Write(contenido);
-
-                // Crear BitmapSource desde PixelData
-                var bitmap = BitmapSource.Create(
-                    pixelData.Width,
-                    pixelData.Height,
-                    96, 96,
-                    PixelFormats.Bgr32,
-                    null,
-                    pixelData.Pixels,
-                    pixelData.Width * 4);
+                    _logService.Error("No se pudo generar la imagen del código de barras para guardar");
+                    return null;
+                }
 
                 // Crear directorio si no existe
                 string directorio = Path.GetDirectoryName(rutaArchivo);
@@ -210,7 +213,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                     encoder.Save(fileStream);
                 }
 
-                _logService.Debug("Imagen de código de barras guardada en: {0}", rutaArchivo);
+                _logService.Debug($"Imagen de código de barras guardada en: {rutaArchivo}");
                 return rutaArchivo;
             }
             catch (Exception ex)

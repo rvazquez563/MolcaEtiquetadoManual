@@ -62,8 +62,7 @@ namespace MolcaEtiquetadoManual
             // Registrar servicio de fechas julianas
             services.AddSingleton<IJulianDateService, JulianDateService>();
 
-            // Registrar servicio de códigos de barras
-            services.AddSingleton<IBarcodeService, ZXingBarcodeService>();
+            
 
             // Obtener la cadena de conexión desde la configuración
             string connectionString = Configuration.GetConnectionString("DefaultConnection");
@@ -80,6 +79,9 @@ namespace MolcaEtiquetadoManual
             services.AddTransient<IUsuarioService, UsuarioService>();
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
             services.AddTransient<ITurnoService, TurnoService>();
+            services.AddTransient<IEtiquetaPreviewService, EtiquetaPreviewService>();
+            // Registrar servicio de códigos de barras
+            services.AddSingleton<IBarcodeService, ZXingBarcodeService>();
 
             // Configurar servicio de impresión
             var useMockPrinter = Configuration.GetSection("PrinterSettings").GetValue<bool>("UseMockPrinter");

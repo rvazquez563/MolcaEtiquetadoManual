@@ -7,6 +7,7 @@ using System.Windows.Input;
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Models;
 using Microsoft.Extensions.Configuration;
+using MolcaEtiquetadoManual.Core.Services;
 
 namespace MolcaEtiquetadoManual.UI.Views
 {
@@ -20,6 +21,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly IBarcodeService _barcodeService;
         private readonly IJulianDateService _julianDateService;
         private readonly IConfiguration _configuration;
+        private readonly IEtiquetaPreviewService _etiquetaPreviewService;
 
         private Usuario _currentUser;
         private OrdenProduccion _currentOrden;
@@ -36,6 +38,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                         IPrintService printService,
                         ITurnoService turnoService,
                         ILogService logService,
+                        IEtiquetaPreviewService etiquetaPreviewService,
                         IBarcodeService barcodeService = null,
                         IJulianDateService julianDateService = null,
                         IConfiguration configuration = null)
@@ -49,7 +52,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             _printService = printService ?? throw new ArgumentNullException(nameof(printService));
             _turnoService = turnoService ?? throw new ArgumentNullException(nameof(turnoService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-
+            _etiquetaPreviewService = etiquetaPreviewService;
             // Estos pueden ser opcionales, así que no lanzamos excepciones
             _barcodeService = barcodeService;
             _julianDateService = julianDateService;
@@ -105,7 +108,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             _logService.Information("Sesión cerrada - Usuario: {Username}", _currentUser.NombreUsuario);
 
             var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
-                                            _turnoService, _logService, _barcodeService,
+                                            _turnoService, _logService,_etiquetaPreviewService ,_barcodeService,
                                             _julianDateService, _configuration);
             loginWindow.Show();
             this.Close();
@@ -141,7 +144,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         {
             ImprimirEtiqueta();
         }
-
+  
         private void AddActivityLogItem(string message, ActivityLogItem.LogLevel level = ActivityLogItem.LogLevel.Info)
         {
             // Crear un nuevo ítem de log
@@ -178,7 +181,6 @@ namespace MolcaEtiquetadoManual.UI.Views
                     break;
             }
         }
-
         private void BuscarOrden()
         {
             string dun14 = txtDun14.Text.Trim();
@@ -207,6 +209,9 @@ namespace MolcaEtiquetadoManual.UI.Views
                     // Mostrar datos de la orden
                     MostrarDatosOrden(orden);
 
+                    // Generar vista previa preliminar
+                    GenerarVistaPreviaPreliminar(orden);
+
                     // Habilitar el botón de impresión
                     btnImprimirEtiqueta.IsEnabled = true;
                 }
@@ -224,6 +229,172 @@ namespace MolcaEtiquetadoManual.UI.Views
                 MessageBox.Show($"Error al buscar la orden: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        // Método para generar una vista previa preliminar (sin código de barras)
+        private void GenerarVistaPreviaPreliminar(OrdenProduccion orden)
+        {
+            try
+            {
+                // Verificar nulos para evitar excepciones
+                if (orden == null || _etiquetaPreviewService == null || _turnoService == null)
+                {
+                    _logService?.Warning("No se puede generar vista previa, datos insuficientes");
+                    return;
+                }
+
+                _logService.Debug("Generando vista previa preliminar...");
+
+                // Obtener información del turno y fecha
+                var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+
+                // Crear una etiqueta temporal solo para la vista previa
+                var etiquetaTemporal = new EtiquetaGenerada
+                {
+                    LOTN = $"{orden.ProgramaProduccion}{turnoActual}",
+                    URDT = fechaProduccion.AddDays(orden.DiasCaducidad)
+                };
+
+                // Generar un código de barras básico para la vista previa
+                string codigoBarrasPreliminar = null;
+
+                if (_barcodeService != null)
+                {
+                    try
+                    {
+                        codigoBarrasPreliminar = _barcodeService.GenerarCodigoBarras(orden, etiquetaTemporal);
+                        _logService.Debug($"Código de barras preliminar generado: {codigoBarrasPreliminar}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Error(ex, "Error al generar código de barras preliminar");
+                    }
+                }
+
+                // Generar vista previa
+                var vistaPrevia = _etiquetaPreviewService.GenerarVistaPrevia(orden, etiquetaTemporal, codigoBarrasPreliminar);
+
+                // Verificar que el control existe antes de actualizarlo
+                if (etiquetaPreview != null && vistaPrevia != null)
+                {
+                    // Actualizar el control de vista previa
+                    etiquetaPreview.ActualizarVista(vistaPrevia);
+                    _logService.Debug("Vista previa actualizada en la UI");
+                }
+                else
+                {
+                    _logService.Warning("No se pudo actualizar la vista previa (control o datos nulos)");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService?.Error(ex, "Error al generar vista previa preliminar");
+                // No mostramos error al usuario ya que no es crítico
+            }
+        }
+
+
+        // Método ImprimirEtiqueta - Actualizar con la vista previa completa
+        private void ImprimirEtiqueta()
+        {
+            if (_currentOrden == null)
+            {
+                AddActivityLogItem("No hay una orden seleccionada para imprimir.", ActivityLogItem.LogLevel.Warning);
+                MessageBox.Show("No hay una orden seleccionada para imprimir.", "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                // Obtener información del turno y fecha
+                var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+                string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
+
+                // Crear la entidad de etiqueta
+                _etiquetaActual = CrearEtiquetaGenerada(_currentOrden, turnoActual, fechaProduccion, numeroTransaccion);
+
+                // Generar el código de barras
+                _expectedBarcode = _barcodeService.GenerarCodigoBarras(_currentOrden, _etiquetaActual);
+
+                // Generar vista previa completa con código de barras
+                var vistaPrevia = _etiquetaPreviewService.GenerarVistaPrevia(_currentOrden, _etiquetaActual, _expectedBarcode);
+                etiquetaPreview.ActualizarVista(vistaPrevia);
+
+                AddActivityLogItem("Enviando etiqueta a la impresora...", ActivityLogItem.LogLevel.Info);
+
+                // Imprimir la etiqueta
+                bool resultado = _printService.ImprimirEtiqueta(_currentOrden, _etiquetaActual, _expectedBarcode);
+
+                if (resultado)
+                {
+                    AddActivityLogItem("Etiqueta enviada a la impresora. Escanee el código para verificar.", ActivityLogItem.LogLevel.Info);
+
+                    // Habilitar controles de verificación
+                    txtCodigoVerificacion.IsEnabled = true;
+                    btnVerificar.IsEnabled = true;
+                    txtCodigoVerificacion.Focus();
+                }
+                else
+                {
+                    AddActivityLogItem("Error al enviar la etiqueta a la impresora.", ActivityLogItem.LogLevel.Error);
+                    MessageBox.Show("Error al enviar la etiqueta a la impresora. Verifique la conexión e intente nuevamente.",
+                        "Error de impresión", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                AddActivityLogItem($"Error al imprimir la etiqueta: {ex.Message}", ActivityLogItem.LogLevel.Error);
+                _logService.Error(ex, "Error al imprimir etiqueta para orden: {ProgramaProduccion}",
+                    _currentOrden.ProgramaProduccion);
+                MessageBox.Show($"Error al imprimir la etiqueta: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        //private void BuscarOrden()
+        //{
+        //    string dun14 = txtDun14.Text.Trim();
+
+        //    if (string.IsNullOrEmpty(dun14))
+        //    {
+        //        AddActivityLogItem("Por favor, ingrese o escanee un código DUN14.", ActivityLogItem.LogLevel.Warning);
+        //        MessageBox.Show("Por favor, ingrese o escanee un código DUN14.", "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+        //        return;
+        //    }
+
+        //    try
+        //    {
+        //        AddActivityLogItem($"Buscando orden con DUN14: {dun14}...", ActivityLogItem.LogLevel.Info);
+
+        //        // Buscar la orden en la base de datos
+        //        var orden = _etiquetadoService.BuscarOrdenPorDun14(dun14);
+
+        //        if (orden != null)
+        //        {
+        //            // Guardar la orden actual
+        //            _currentOrden = orden;
+
+        //            AddActivityLogItem($"Orden encontrada: {orden.Descripcion}", ActivityLogItem.LogLevel.Info);
+
+        //            // Mostrar datos de la orden
+        //            MostrarDatosOrden(orden);
+
+        //            // Habilitar el botón de impresión
+        //            btnImprimirEtiqueta.IsEnabled = true;
+        //        }
+        //        else
+        //        {
+        //            AddActivityLogItem($"No se encontró ninguna orden con el código DUN14: {dun14}", ActivityLogItem.LogLevel.Warning);
+        //            LimpiarCampos();
+        //            MessageBox.Show("No se encontró ninguna orden con ese código DUN14.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        AddActivityLogItem($"Error al buscar la orden: {ex.Message}", ActivityLogItem.LogLevel.Error);
+        //        _logService.Error(ex, "Error al buscar orden con DUN14: {DUN14}", dun14);
+        //        MessageBox.Show($"Error al buscar la orden: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //    }
+        //}
 
         private void MostrarDatosOrden(OrdenProduccion orden)
         {
@@ -262,59 +433,62 @@ namespace MolcaEtiquetadoManual.UI.Views
             _currentOrden = null;
             _etiquetaActual = null;
             _expectedBarcode = null;
+
+            // Limpiar vista previa
+            etiquetaPreview.Limpiar();
         }
 
-        private void ImprimirEtiqueta()
-        {
-            if (_currentOrden == null)
-            {
-                AddActivityLogItem("No hay una orden seleccionada para imprimir.", ActivityLogItem.LogLevel.Warning);
-                MessageBox.Show("No hay una orden seleccionada para imprimir.", "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
+        //private void ImprimirEtiqueta()
+        //{
+        //    if (_currentOrden == null)
+        //    {
+        //        AddActivityLogItem("No hay una orden seleccionada para imprimir.", ActivityLogItem.LogLevel.Warning);
+        //        MessageBox.Show("No hay una orden seleccionada para imprimir.", "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+        //        return;
+        //    }
 
-            try
-            {
-                // Obtener información del turno y fecha
-                var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
-                string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
+        //    try
+        //    {
+        //        // Obtener información del turno y fecha
+        //        var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+        //        string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
 
-                // Crear la entidad de etiqueta
-                _etiquetaActual = CrearEtiquetaGenerada(_currentOrden, turnoActual, fechaProduccion, numeroTransaccion);
+        //        // Crear la entidad de etiqueta
+        //        _etiquetaActual = CrearEtiquetaGenerada(_currentOrden, turnoActual, fechaProduccion, numeroTransaccion);
 
-                // Generar el código de barras
-                _expectedBarcode = _barcodeService.GenerarCodigoBarras(_currentOrden, _etiquetaActual);
+        //        // Generar el código de barras
+        //        _expectedBarcode = _barcodeService.GenerarCodigoBarras(_currentOrden, _etiquetaActual);
 
-                AddActivityLogItem("Enviando etiqueta a la impresora...", ActivityLogItem.LogLevel.Info);
+        //        AddActivityLogItem("Enviando etiqueta a la impresora...", ActivityLogItem.LogLevel.Info);
 
-                // Imprimir la etiqueta
-                bool resultado = _printService.ImprimirEtiqueta(_currentOrden, _etiquetaActual, _expectedBarcode);
+        //        // Imprimir la etiqueta
+        //        bool resultado = _printService.ImprimirEtiqueta(_currentOrden, _etiquetaActual, _expectedBarcode);
 
-                if (resultado)
-                {
-                    AddActivityLogItem("Etiqueta enviada a la impresora. Escanee el código para verificar.", ActivityLogItem.LogLevel.Info);
+        //        if (resultado)
+        //        {
+        //            AddActivityLogItem("Etiqueta enviada a la impresora. Escanee el código para verificar.", ActivityLogItem.LogLevel.Info);
 
-                    // Habilitar controles de verificación
-                    txtCodigoVerificacion.IsEnabled = true;
-                    btnVerificar.IsEnabled = true;
-                    txtCodigoVerificacion.Focus();
-                }
-                else
-                {
-                    AddActivityLogItem("Error al enviar la etiqueta a la impresora.", ActivityLogItem.LogLevel.Error);
-                    MessageBox.Show("Error al enviar la etiqueta a la impresora. Verifique la conexión e intente nuevamente.",
-                        "Error de impresión", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                AddActivityLogItem($"Error al imprimir la etiqueta: {ex.Message}", ActivityLogItem.LogLevel.Error);
-                _logService.Error(ex, "Error al imprimir etiqueta para orden: {ProgramaProduccion}",
-                    _currentOrden.ProgramaProduccion);
-                MessageBox.Show($"Error al imprimir la etiqueta: {ex.Message}",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        //            // Habilitar controles de verificación
+        //            txtCodigoVerificacion.IsEnabled = true;
+        //            btnVerificar.IsEnabled = true;
+        //            txtCodigoVerificacion.Focus();
+        //        }
+        //        else
+        //        {
+        //            AddActivityLogItem("Error al enviar la etiqueta a la impresora.", ActivityLogItem.LogLevel.Error);
+        //            MessageBox.Show("Error al enviar la etiqueta a la impresora. Verifique la conexión e intente nuevamente.",
+        //                "Error de impresión", MessageBoxButton.OK, MessageBoxImage.Error);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        AddActivityLogItem($"Error al imprimir la etiqueta: {ex.Message}", ActivityLogItem.LogLevel.Error);
+        //        _logService.Error(ex, "Error al imprimir etiqueta para orden: {ProgramaProduccion}",
+        //            _currentOrden.ProgramaProduccion);
+        //        MessageBox.Show($"Error al imprimir la etiqueta: {ex.Message}",
+        //            "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //    }
+        //}
 
         private EtiquetaGenerada CrearEtiquetaGenerada(OrdenProduccion orden, string turnoActual,
             DateTime fechaProduccion, string numeroTransaccion)

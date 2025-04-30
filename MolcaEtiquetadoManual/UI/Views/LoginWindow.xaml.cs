@@ -19,12 +19,13 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly IBarcodeService _barcodeService;
         private readonly IJulianDateService _julianDateService;
         private readonly IConfiguration _configuration;
-
+        private readonly IEtiquetaPreviewService _etiquetaPreviewService;
         public LoginWindow(IUsuarioService usuarioService,
                          IEtiquetadoService etiquetadoService,
                          IPrintService printService,
                          ITurnoService turnoService,
                          ILogService logService,
+                         IEtiquetaPreviewService etiquetaPreviewService , 
                          IBarcodeService barcodeService = null,
                          IJulianDateService julianDateService = null,
                          IConfiguration configuration = null)
@@ -36,6 +37,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             _printService = printService ?? throw new ArgumentNullException(nameof(printService));
             _turnoService = turnoService ?? throw new ArgumentNullException(nameof(turnoService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _etiquetaPreviewService = etiquetaPreviewService ?? throw new ArgumentNullException(nameof(etiquetaPreviewService));
             _barcodeService = barcodeService;
             _julianDateService = julianDateService;
             _configuration = configuration;
@@ -104,6 +106,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                         _printService,
                         _turnoService,
                         _logService,
+                        _etiquetaPreviewService,                        
                         _barcodeService,
                         _julianDateService,
                         _configuration);

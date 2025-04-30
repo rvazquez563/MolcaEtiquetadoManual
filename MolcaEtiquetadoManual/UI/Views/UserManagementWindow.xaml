@@ -13,17 +13,17 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="40"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Barra superior -->
-        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" Grid.Row="0">
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="5" Grid.Row="0">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <materialDesign:PackIcon Kind="AccountGroup" Height="30" Width="30" VerticalAlignment="Center"/>
-                    <TextBlock Margin="8 0 0 0" VerticalAlignment="Center" FontSize="20">
+                    <materialDesign:PackIcon Kind="AccountGroup" Height="20" Width="20" VerticalAlignment="Center"/>
+                    <TextBlock Margin="8 0 0 0" VerticalAlignment="Center" FontSize="15">
                         Gestión de Usuarios
                     </TextBlock>
                 </StackPanel>
@@ -117,7 +117,7 @@
                              DockPanel.Dock="Top" 
                              FontSize="16" 
                              FontWeight="Medium" 
-                             Margin="15"/>
+                             Margin="5"/>
 
                     <StackPanel DockPanel.Dock="Bottom" 
                               Orientation="Horizontal" 
@@ -142,7 +142,7 @@
                         <TextBox x:Name="txtNombreUsuario"
                                  materialDesign:HintAssist.Hint="Ingrese nombre de usuario"
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                 Margin="0 0 0 15"/>
+                                 Margin="0 0 0 5"/>
 
                         <TextBlock Text="Contraseña" 
                                  FontWeight="Medium" 
@@ -150,7 +150,7 @@
                         <PasswordBox x:Name="txtContraseña"
                                      materialDesign:HintAssist.Hint="Ingrese contraseña"
                                      Style="{StaticResource MaterialDesignOutlinedPasswordBox}"
-                                     Margin="0 0 0 15"/>
+                                     Margin="0 0 0 5"/>
 
                         <TextBlock Text="Confirmar Contraseña" 
                                  FontWeight="Medium" 
@@ -158,7 +158,7 @@
                         <PasswordBox x:Name="txtConfirmarContraseña"
                                      materialDesign:HintAssist.Hint="Confirme contraseña"
                                      Style="{StaticResource MaterialDesignOutlinedPasswordBox}"
-                                     Margin="0 0 0 15"/>
+                                     Margin="0 0 0 5"/>
 
                         <TextBlock Text="Rol" 
                                  FontWeight="Medium" 
@@ -166,7 +166,7 @@
                         <ComboBox x:Name="cmbRol"
                                   Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                   materialDesign:HintAssist.Hint="Seleccione rol"
-                                  Margin="0 0 0 15">
+                                  Margin="0 0 0 5">
                             <ComboBoxItem Content="Administrador"/>
                             <ComboBoxItem Content="Operador"/>
                         </ComboBox>
@@ -174,7 +174,7 @@
                         <CheckBox x:Name="chkActivo"
                                   Content="Usuario activo"
                                   IsChecked="True"
-                                  Margin="0 10 0 0"/>
+                                  Margin="0 5 0 0"/>
 
                         <TextBlock x:Name="txtError" 
                                  Foreground="Red" 
