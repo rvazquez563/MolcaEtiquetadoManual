@@ -101,6 +101,7 @@ namespace MolcaEtiquetadoManual
             // Registrar ventanas
             services.AddTransient<LoginWindow>();
             services.AddTransient<MainWindow>();
+            services.AddTransient<UserManagementWindow>();
         }
 
         protected override void OnStartup(StartupEventArgs e)

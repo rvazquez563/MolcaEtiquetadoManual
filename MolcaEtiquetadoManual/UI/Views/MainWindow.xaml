@@ -462,6 +462,14 @@
                                              Width="24" 
                                              VerticalAlignment="Center"/>
 
+                    <!-- Botón de gestión de usuarios -->
+                    <Button Style="{StaticResource MaterialDesignToolButton}"
+                            x:Name="btnUsuarios"
+                            ToolTip="Gestión de Usuarios"
+                            Margin="8 0"
+                            Click="BtnUsuarios_Click">
+                        <materialDesign:PackIcon Kind="AccountGroup" Height="24" Width="24"/>
+                    </Button>
                     <!-- Botón de configuración de impresora -->
                     <Button Style="{StaticResource MaterialDesignToolButton}"
                             x:Name="btnConfigImpresora"

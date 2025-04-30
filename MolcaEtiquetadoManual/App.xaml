@@ -14,6 +14,11 @@
             <!-- Convertidores -->
             <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
 
+            <!-- Convertidores para gestión de usuarios -->
+            <converters:EstadoUsuarioConverter x:Key="EstadoConverter"/>
+            <converters:EstadoUsuarioColorConverter x:Key="EstadoColorConverter"/>
+            <converters:ObjectToBooleanConverter x:Key="BooleanConverter"/>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

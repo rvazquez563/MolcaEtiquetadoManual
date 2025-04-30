@@ -382,6 +382,38 @@ namespace MolcaEtiquetadoManual.UI.Views
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void BtnUsuarios_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Verificar permisos (solo administradores)
+                if (_currentUser.Rol != "Administrador")
+                {
+                    MessageBox.Show("Solo los administradores pueden acceder a la gestión de usuarios.",
+                        "Acceso Restringido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Crear y mostrar la ventana de gestión de usuarios
+                var userManagementWindow = new UserManagementWindow(_currentUser, _usuarioService, _logService);
+                userManagementWindow.Owner = this;
+
+                _logService.Information("Abriendo ventana de gestión de usuarios - Usuario: {Username}",
+                    _currentUser.NombreUsuario);
+
+                // Mostrar como diálogo modal
+                userManagementWindow.ShowDialog();
+
+                // Registrar en el historial
+                AddActivityLogItem("Se accedió a la gestión de usuarios", ActivityLogItem.LogLevel.Info);
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al abrir ventana de gestión de usuarios");
+                MessageBox.Show($"Error al abrir la gestión de usuarios: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void VerificarCodigoBarras()
         {
             string codigoEscaneado = txtCodigoVerificacion.Text.Trim();
@@ -442,6 +474,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         }
     }
 }
+
 //using System;
 //using System.Collections.Generic;
 //using System.Linq;

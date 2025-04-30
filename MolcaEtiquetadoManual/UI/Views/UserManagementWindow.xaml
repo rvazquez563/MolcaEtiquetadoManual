@@ -1,0 +1,197 @@
+﻿<!-- UI/Views/UserManagementWindow.xaml -->
+<Window x:Class="MolcaEtiquetadoManual.UI.Views.UserManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="Gestión de Usuarios" 
+        Height="600" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource MaterialDesignBackground}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Barra superior -->
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" Grid.Row="0">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <materialDesign:PackIcon Kind="AccountGroup" Height="30" Width="30" VerticalAlignment="Center"/>
+                    <TextBlock Margin="8 0 0 0" VerticalAlignment="Center" FontSize="20">
+                        Gestión de Usuarios
+                    </TextBlock>
+                </StackPanel>
+
+                <Button Style="{StaticResource MaterialDesignFlatButton}"
+                        x:Name="btnVolver"
+                        Click="BtnVolver_Click"
+                        DockPanel.Dock="Right">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Volver"/>
+                        <materialDesign:PackIcon Kind="ArrowLeft" 
+                                                 Margin="4 0 0 0"/>
+                    </StackPanel>
+                </Button>
+            </DockPanel>
+        </materialDesign:ColorZone>
+
+        <!-- Contenido principal -->
+        <Grid Grid.Row="1" Margin="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Lista de usuarios -->
+            <Border Grid.Column="0" 
+                    Background="White" 
+                    CornerRadius="4"
+                    Margin="0 0 10 0">
+                <DockPanel>
+                    <TextBlock Text="Usuarios del Sistema" 
+                             DockPanel.Dock="Top" 
+                             FontSize="16" 
+                             FontWeight="Medium" 
+                             Margin="15"/>
+
+                    <StackPanel DockPanel.Dock="Bottom" 
+                              Orientation="Horizontal" 
+                              HorizontalAlignment="Right"
+                              Margin="15">
+                        <Button x:Name="btnEliminar" 
+                                Content="ELIMINAR" 
+                                Click="BtnEliminar_Click"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0 0 10 0"
+                                IsEnabled="{Binding SelectedItem, ElementName=lvUsuarios, Converter={StaticResource BooleanConverter}}"/>
+
+                        <Button x:Name="btnEditar" 
+                                Content="EDITAR" 
+                                Click="BtnEditar_Click"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                IsEnabled="{Binding SelectedItem, ElementName=lvUsuarios, Converter={StaticResource BooleanConverter}}"/>
+                    </StackPanel>
+
+                    <ListView x:Name="lvUsuarios" 
+                              Margin="10"
+                              SelectionChanged="LvUsuarios_SelectionChanged">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="ID" 
+                                                DisplayMemberBinding="{Binding Id}" 
+                                                Width="50"/>
+                                <GridViewColumn Header="Usuario" 
+                                                DisplayMemberBinding="{Binding NombreUsuario}" 
+                                                Width="150"/>
+                                <GridViewColumn Header="Rol" 
+                                                DisplayMemberBinding="{Binding Rol}" 
+                                                Width="150"/>
+                                <GridViewColumn Header="Estado" 
+                                                Width="100">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Activo, Converter={StaticResource EstadoConverter}}"
+                                                       Foreground="{Binding Activo, Converter={StaticResource EstadoColorConverter}}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </DockPanel>
+            </Border>
+
+            <!-- Formulario de usuario -->
+            <Border Grid.Column="1" 
+                    Background="White" 
+                    CornerRadius="4">
+                <DockPanel>
+                    <TextBlock Text="Agregar Usuario" 
+                             x:Name="txtTituloForm"
+                             DockPanel.Dock="Top" 
+                             FontSize="16" 
+                             FontWeight="Medium" 
+                             Margin="15"/>
+
+                    <StackPanel DockPanel.Dock="Bottom" 
+                              Orientation="Horizontal" 
+                              HorizontalAlignment="Right"
+                              Margin="15">
+                        <Button x:Name="btnCancelar" 
+                                Content="CANCELAR" 
+                                Click="BtnCancelar_Click"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0 0 10 0"/>
+
+                        <Button x:Name="btnGuardar" 
+                                Content="GUARDAR" 
+                                Click="BtnGuardar_Click"
+                                Style="{StaticResource MaterialDesignRaisedButton}"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="15">
+                        <TextBlock Text="Nombre de Usuario" 
+                                 FontWeight="Medium" 
+                                 Margin="0 0 0 5"/>
+                        <TextBox x:Name="txtNombreUsuario"
+                                 materialDesign:HintAssist.Hint="Ingrese nombre de usuario"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Margin="0 0 0 15"/>
+
+                        <TextBlock Text="Contraseña" 
+                                 FontWeight="Medium" 
+                                 Margin="0 0 0 5"/>
+                        <PasswordBox x:Name="txtContraseña"
+                                     materialDesign:HintAssist.Hint="Ingrese contraseña"
+                                     Style="{StaticResource MaterialDesignOutlinedPasswordBox}"
+                                     Margin="0 0 0 15"/>
+
+                        <TextBlock Text="Confirmar Contraseña" 
+                                 FontWeight="Medium" 
+                                 Margin="0 0 0 5"/>
+                        <PasswordBox x:Name="txtConfirmarContraseña"
+                                     materialDesign:HintAssist.Hint="Confirme contraseña"
+                                     Style="{StaticResource MaterialDesignOutlinedPasswordBox}"
+                                     Margin="0 0 0 15"/>
+
+                        <TextBlock Text="Rol" 
+                                 FontWeight="Medium" 
+                                 Margin="0 0 0 5"/>
+                        <ComboBox x:Name="cmbRol"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  materialDesign:HintAssist.Hint="Seleccione rol"
+                                  Margin="0 0 0 15">
+                            <ComboBoxItem Content="Administrador"/>
+                            <ComboBoxItem Content="Operador"/>
+                        </ComboBox>
+
+                        <CheckBox x:Name="chkActivo"
+                                  Content="Usuario activo"
+                                  IsChecked="True"
+                                  Margin="0 10 0 0"/>
+
+                        <TextBlock x:Name="txtError" 
+                                 Foreground="Red" 
+                                 TextWrapping="Wrap"
+                                 Margin="0 15 0 0"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- Barra de estado -->
+        <materialDesign:ColorZone Mode="Standard" Grid.Row="2" Padding="8">
+            <DockPanel>
+                <TextBlock x:Name="txtEstado" 
+                           Text="Listo" 
+                           DockPanel.Dock="Left"/>
+            </DockPanel>
+        </materialDesign:ColorZone>
+    </Grid>
+</Window>

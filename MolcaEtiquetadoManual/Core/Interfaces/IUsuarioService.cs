@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Core/Interfaces/IUsuarioService.cs
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +14,10 @@ namespace MolcaEtiquetadoManual.Core.Interfaces
         Usuario Authenticate(string nombreUsuario, string contraseña);
         List<Usuario> GetAllUsuarios();
         Usuario GetUsuarioById(int id);
+        Usuario GetUsuarioByNombreUsuario(string nombreUsuario);
         void AddUsuario(Usuario usuario);
         void UpdateUsuario(Usuario usuario);
+        void DeleteUsuario(int id);
+        bool ExisteNombreUsuario(string nombreUsuario, int? idExcluir = null);
     }
 }
