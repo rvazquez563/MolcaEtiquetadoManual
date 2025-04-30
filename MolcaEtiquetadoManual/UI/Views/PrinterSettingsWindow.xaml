@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="MolcaEtiquetadoManual.UI.Views.PrinterSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Configuración de Impresora" 
+        Height="550" Width="500"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Título -->
+        <TextBlock Grid.Row="0" 
+                   Text="Configuración de Impresora" 
+                   FontSize="20" 
+                   FontWeight="Bold" 
+                   Margin="0 0 0 20"/>
+
+        <!-- Contenido principal -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Grupo de Conexión -->
+                <GroupBox Header="Conexión a Impresora" Margin="0 0 0 15">
+                    <Grid Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Dirección IP:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtIpAddress" Margin="0 5"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Puerto:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtPort" Margin="0 5"/>
+
+                        <Button Grid.Row="2" Grid.Column="1" 
+                                x:Name="btnTestPrinter" 
+                                Content="PROBAR CONEXIÓN" 
+                                Click="BtnTestPrinter_Click"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0 10 0 0"
+                                HorizontalAlignment="Right"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Grupo de Formato de Etiqueta -->
+                <GroupBox Header="Formato de Etiqueta" Margin="0 0 0 15">
+                    <Grid Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Nombre Formato:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtFormatName" Margin="0 5"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Unidad Formato:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtFormatUnit" Margin="0 5"/>
+                    </Grid>
+                </GroupBox>
+
+                <!-- Grupo de Opciones -->
+                <GroupBox Header="Opciones" Margin="0 0 0 15">
+                    <StackPanel Margin="10">
+                        <CheckBox x:Name="chkUseMockPrinter" 
+                                  Content="Usar simulador de impresora (para pruebas)" 
+                                  Margin="0 5"/>
+
+                        <CheckBox x:Name="chkShowPrintDialog" 
+                                  Content="Mostrar diálogo de confirmación al imprimir" 
+                                  Margin="0 5"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Grupo de Logs y Depuración -->
+                <GroupBox Header="Logs y Depuración" Margin="0 0 0 15">
+                    <Grid Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Directorio de Logs:" VerticalAlignment="Center"/>
+
+                        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0 5 0 10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" x:Name="txtLogDirectory" IsReadOnly="True"/>
+                            <Button Grid.Column="1" 
+                                    x:Name="btnOpenLogs" 
+                                    Content="ABRIR" 
+                                    Click="BtnOpenLogs_Click"
+                                    Style="{StaticResource MaterialDesignFlatButton}"
+                                    Margin="5 0 0 0"/>
+                        </Grid>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Directorio de Debug ZPL:" VerticalAlignment="Center"/>
+
+                        <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0 5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" x:Name="txtZplDebugDirectory" IsReadOnly="True"/>
+                            <Button Grid.Column="1" 
+                                    x:Name="btnOpenZplDebug" 
+                                    Content="ABRIR" 
+                                    Click="BtnOpenZplDebug_Click"
+                                    Style="{StaticResource MaterialDesignFlatButton}"
+                                    Margin="5 0 0 0"/>
+                        </Grid>
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Botones de acción -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 20 0 0">
+            <Button x:Name="btnCancelar" 
+                    Content="CANCELAR" 
+                    Click="BtnCancelar_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Margin="0 0 10 0"/>
+
+            <Button x:Name="btnGuardar" 
+                    Content="GUARDAR" 
+                    Click="BtnGuardar_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}"/>
+        </StackPanel>
+    </Grid>
+</Window>

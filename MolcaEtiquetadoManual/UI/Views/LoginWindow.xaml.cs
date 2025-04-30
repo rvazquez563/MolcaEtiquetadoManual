@@ -1,8 +1,11 @@
-﻿using MolcaEtiquetadoManual.Core.Interfaces;
-using MolcaEtiquetadoManual.Core.Models;
-using MolcaEtiquetadoManual.Core.Services;
-using System.Windows;
+﻿// UI/Views/LoginWindow.xaml.cs
 using System;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using Microsoft.Extensions.Configuration;
+using MolcaEtiquetadoManual.Core.Interfaces;
+using MolcaEtiquetadoManual.Core.Models;
 
 namespace MolcaEtiquetadoManual.UI.Views
 {
@@ -13,22 +16,63 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly IPrintService _printService;
         private readonly ITurnoService _turnoService;
         private readonly ILogService _logService;
+        private readonly IBarcodeService _barcodeService;
+        private readonly IJulianDateService _julianDateService;
+        private readonly IConfiguration _configuration;
 
-        public LoginWindow(IUsuarioService usuarioService, IEtiquetadoService etiquetadoService,
-            IPrintService printService, ITurnoService turnoService, ILogService logService)
+        public LoginWindow(IUsuarioService usuarioService,
+                         IEtiquetadoService etiquetadoService,
+                         IPrintService printService,
+                         ITurnoService turnoService,
+                         ILogService logService,
+                         IBarcodeService barcodeService = null,
+                         IJulianDateService julianDateService = null,
+                         IConfiguration configuration = null)
         {
             InitializeComponent();
+
             _usuarioService = usuarioService ?? throw new ArgumentNullException(nameof(usuarioService));
             _etiquetadoService = etiquetadoService ?? throw new ArgumentNullException(nameof(etiquetadoService));
             _printService = printService ?? throw new ArgumentNullException(nameof(printService));
             _turnoService = turnoService ?? throw new ArgumentNullException(nameof(turnoService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _barcodeService = barcodeService;
+            _julianDateService = julianDateService;
+            _configuration = configuration;
+
+            // Cargar versión desde configuración
+            if (_configuration != null)
+            {
+                string version = _configuration.GetSection("AppSettings")["Version"] ?? "1.0.0";
+                txtVersion.Text = $"v{version}";
+            }
 
             _logService.Information("Ventana de login iniciada");
+
+            // Enfocar el campo de usuario
+            Loaded += (s, e) => txtUsername.Focus();
         }
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
+            Login();
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                Login();
+            }
+        }
+
+        private async void Login()
+        {
+            // Mostrar indicador de carga
+            loginProgressBar.Visibility = Visibility.Visible;
+            btnLogin.IsEnabled = false;
+            txtError.Text = string.Empty;
+
             string nombreUsuario = txtUsername.Text;
             string contraseña = txtPassword.Password;
 
@@ -36,13 +80,16 @@ namespace MolcaEtiquetadoManual.UI.Views
             {
                 _logService.Warning("Intento de login con campos vacíos");
                 txtError.Text = "Por favor, ingrese nombre de usuario y contraseña";
+                ResetLoginControls();
                 return;
             }
 
             try
             {
                 _logService.Information("Intento de autenticación: usuario {Username}", nombreUsuario);
-                var usuario = _usuarioService.Authenticate(nombreUsuario, contraseña);
+
+                // Usar Task.Run para simular proceso asíncrono y mostrar el progreso
+                var usuario = await Task.Run(() => _usuarioService.Authenticate(nombreUsuario, contraseña));
 
                 if (usuario != null)
                 {
@@ -50,8 +97,17 @@ namespace MolcaEtiquetadoManual.UI.Views
                         usuario.NombreUsuario, usuario.Rol);
 
                     // Abrir ventana principal con el servicio de etiquetado
-                    var mainWindow = new MainWindow(usuario, _etiquetadoService, _usuarioService,
-                        _printService, _turnoService, _logService);
+                    var mainWindow = new MainWindow(
+                        usuario,
+                        _etiquetadoService,
+                        _usuarioService,
+                        _printService,
+                        _turnoService,
+                        _logService,
+                        _barcodeService,
+                        _julianDateService,
+                        _configuration);
+
                     mainWindow.Show();
                     this.Close();
                 }
@@ -59,13 +115,23 @@ namespace MolcaEtiquetadoManual.UI.Views
                 {
                     _logService.Warning("Autenticación fallida: usuario {Username}", nombreUsuario);
                     txtError.Text = "Usuario o contraseña incorrectos";
+                    ResetLoginControls();
                 }
             }
             catch (Exception ex)
             {
                 _logService.Error(ex, "Error durante la autenticación: usuario {Username}", nombreUsuario);
                 txtError.Text = $"Error al iniciar sesión: {ex.Message}";
+                ResetLoginControls();
             }
+        }
+
+        private void ResetLoginControls()
+        {
+            loginProgressBar.Visibility = Visibility.Collapsed;
+            btnLogin.IsEnabled = true;
+            txtPassword.Password = string.Empty;
+            txtPassword.Focus();
         }
     }
 }

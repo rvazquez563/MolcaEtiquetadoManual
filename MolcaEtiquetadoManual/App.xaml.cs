@@ -48,7 +48,7 @@ namespace MolcaEtiquetadoManual
                 Log.Fatal(ex, "La aplicación falló al iniciar");
             }
         }
-
+        // Fragmento de ConfigureServices en App.xaml.cs
         private void ConfigureServices(ServiceCollection services)
         {
             // Agregar Serilog a los servicios
@@ -58,17 +58,19 @@ namespace MolcaEtiquetadoManual
             // Registrar servicio de logging
             services.AddSingleton<ILogService, LogService>();
 
+            services.AddSingleton(Configuration);
+            // Registrar servicio de fechas julianas
+            services.AddSingleton<IJulianDateService, JulianDateService>();
+
+            // Registrar servicio de códigos de barras
+            services.AddSingleton<IBarcodeService, ZXingBarcodeService>();
+
             // Obtener la cadena de conexión desde la configuración
             string connectionString = Configuration.GetConnectionString("DefaultConnection");
 
             // Configurar DbContext
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(connectionString));
-
-            // Obtener configuración de la impresora
-            var printerSection = Configuration.GetSection("PrinterSettings");
-            string printerIp = printerSection["IpAddress"];
-            int printerPort = int.Parse(printerSection["Port"]);
 
             // Registrar repositorios
             services.AddTransient<UsuarioRepository>();
@@ -79,8 +81,22 @@ namespace MolcaEtiquetadoManual
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
             services.AddTransient<ITurnoService, TurnoService>();
 
-            // Configurar servicio de impresión con valores de configuración
-            services.AddSingleton<IPrintService>(new ZebraPrintService(printerIp, printerPort));
+            // Configurar servicio de impresión
+            var useMockPrinter = Configuration.GetSection("PrinterSettings").GetValue<bool>("UseMockPrinter");
+
+            if (useMockPrinter)
+            {
+                // Usar la versión de prueba del servicio de impresión
+                services.AddSingleton<IPrintService, TestPrintService>();
+                Log.Information("Utilizando servicio de impresión para PRUEBAS");
+            }
+            else
+            {
+                // Usar el servicio real de impresión
+                services.AddSingleton<IPrintService>(sp =>
+                    new ZebraPrintService(Configuration, sp.GetRequiredService<ILogService>()));
+                Log.Information("Utilizando servicio de impresión REAL para Zebra");
+            }
 
             // Registrar ventanas
             services.AddTransient<LoginWindow>();

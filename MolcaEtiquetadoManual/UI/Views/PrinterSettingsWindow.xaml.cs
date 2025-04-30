@@ -1,0 +1,156 @@
+﻿// UI/Views/PrinterSettingsWindow.xaml.cs
+using System;
+using System.IO;
+using System.Windows;
+using Microsoft.Extensions.Configuration;
+using MolcaEtiquetadoManual.Core.Interfaces;
+
+namespace MolcaEtiquetadoManual.UI.Views
+{
+    public partial class PrinterSettingsWindow : Window
+    {
+        private readonly ILogService _logService;
+        private readonly IConfiguration _configuration;
+
+        public PrinterSettingsWindow(ILogService logService, IConfiguration configuration)
+        {
+            InitializeComponent();
+            _logService = logService;
+            _configuration = configuration;
+
+            // Cargar configuración actual
+            CargarConfiguracion();
+        }
+
+        private void CargarConfiguracion()
+        {
+            try
+            {
+                var printerSettings = _configuration.GetSection("PrinterSettings");
+
+                txtIpAddress.Text = printerSettings["IpAddress"];
+                txtPort.Text = printerSettings["Port"];
+                txtFormatName.Text = printerSettings["FormatName"];
+                txtFormatUnit.Text = printerSettings["FormatUnit"];
+                chkUseMockPrinter.IsChecked = bool.Parse(printerSettings["UseMockPrinter"] ?? "true");
+                chkShowPrintDialog.IsChecked = bool.Parse(printerSettings["ShowPrintDialog"] ?? "true");
+
+                // Información sobre directorios de logs
+                string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                txtLogDirectory.Text = Path.Combine(appDataPath, "MolcaEtiquetadoManual", "Logs");
+                txtZplDebugDirectory.Text = Path.Combine(appDataPath, "MolcaEtiquetadoManual", "ZplDebug");
+
+                _logService.Information("Configuración de impresora cargada en ventana de configuración");
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al cargar configuración de impresora");
+                MessageBox.Show($"Error al cargar la configuración: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnGuardar_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // En una aplicación real, aquí actualizaríamos el archivo appsettings.json
+                // Para esta implementación, solo mostraremos un mensaje de éxito
+
+                _logService.Information("Configuración de impresora actualizada");
+                MessageBox.Show("La configuración se actualizaría en un entorno de producción.\n\n" +
+                    "Para implementar esta funcionalidad, se necesita modificar el archivo appsettings.json.",
+                    "Información", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                Close();
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al guardar configuración de impresora");
+                MessageBox.Show($"Error al guardar la configuración: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnCancelar_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void BtnTestPrinter_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // En una aplicación real, aquí probaríamos la conexión con la impresora
+                // Usando los valores actuales de los campos
+
+                string ipAddress = txtIpAddress.Text;
+                int port = int.Parse(txtPort.Text);
+
+                // Simulación de prueba
+                _logService.Information($"Probando conexión con impresora en {ipAddress}:{port}");
+
+                // Solo para demostración
+                MessageBox.Show($"Prueba de conexión con la impresora en {ipAddress}:{port}\n\n" +
+                    "Esta funcionalidad enviará un comando ZPL de prueba a la impresora.",
+                    "Prueba de Impresora", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al probar conexión con impresora");
+                MessageBox.Show($"Error al probar la conexión: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnOpenLogs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string logDirectory = txtLogDirectory.Text;
+
+                if (Directory.Exists(logDirectory))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", logDirectory);
+                    _logService.Information($"Abriendo directorio de logs: {logDirectory}");
+                }
+                else
+                {
+                    MessageBox.Show($"El directorio de logs no existe: {logDirectory}",
+                        "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al abrir directorio de logs");
+                MessageBox.Show($"Error al abrir directorio de logs: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnOpenZplDebug_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string zplDebugDirectory = txtZplDebugDirectory.Text;
+
+                if (Directory.Exists(zplDebugDirectory))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", zplDebugDirectory);
+                    _logService.Information($"Abriendo directorio de debug ZPL: {zplDebugDirectory}");
+                }
+                else
+                {
+                    MessageBox.Show($"El directorio de debug ZPL no existe: {zplDebugDirectory}",
+                        "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al abrir directorio de debug ZPL");
+                MessageBox.Show($"Error al abrir directorio de debug ZPL: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+}

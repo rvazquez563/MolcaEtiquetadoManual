@@ -26,21 +26,21 @@ namespace MolcaEtiquetadoManual.Data.StoredProcedures
 
         public static string SP_InsertarEtiqueta => @"
          CREATE PROCEDURE [dbo].[SP_InsertarEtiqueta]
-                        @EDUS VARCHAR(10),
-						@EDDT VARCHAR(10),
-                        @EDTN VARCHAR(10),
+                        @EDUS VARCHAR(max),
+						@EDDT VARCHAR(max),
+                        @EDTN VARCHAR(max),
                         @EDLN INT,
                         @DOCO VARCHAR(max),
-                        @LITM VARCHAR(20),
+                        @LITM VARCHAR(max),
                         @SOQS INT,
-                        @UOM VARCHAR(5),
-                        @LOTN VARCHAR(20),
+                        @UOM VARCHAR(max),
+                        @LOTN VARCHAR(max),
                         @EXPR DATETIME,
-                        @TDAY VARCHAR(10),
-                        @SHFT VARCHAR(5),
+                        @TDAY VARCHAR(max),
+                        @SHFT VARCHAR(max),
                         @URDT DATETIME,
-                        @ESTADO VARCHAR(5),
-                        @URRF VARCHAR(10),
+                        @ESTADO VARCHAR(max),
+                        @URRF VARCHAR(max),
 						@Confirmada bit
                     AS
                     BEGIN
