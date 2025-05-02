@@ -48,7 +48,7 @@ namespace MolcaEtiquetadoManual
                 Log.Fatal(ex, "La aplicación falló al iniciar");
             }
         }
-        // Fragmento de ConfigureServices en App.xaml.cs
+
         private void ConfigureServices(ServiceCollection services)
         {
             // Agregar Serilog a los servicios
@@ -59,10 +59,9 @@ namespace MolcaEtiquetadoManual
             services.AddSingleton<ILogService, LogService>();
 
             services.AddSingleton(Configuration);
+
             // Registrar servicio de fechas julianas
             services.AddSingleton<IJulianDateService, JulianDateService>();
-
-            
 
             // Obtener la cadena de conexión desde la configuración
             string connectionString = Configuration.GetConnectionString("DefaultConnection");
@@ -79,9 +78,12 @@ namespace MolcaEtiquetadoManual
             services.AddTransient<IUsuarioService, UsuarioService>();
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
             services.AddTransient<ITurnoService, TurnoService>();
-            services.AddTransient<IEtiquetaPreviewService, EtiquetaPreviewService>();
+
             // Registrar servicio de códigos de barras
             services.AddSingleton<IBarcodeService, ZXingBarcodeService>();
+
+            // Registrar servicio de vista previa de etiquetas
+            services.AddSingleton<IEtiquetaPreviewService, EtiquetaPreviewService>();
 
             // Configurar servicio de impresión
             var useMockPrinter = Configuration.GetSection("PrinterSettings").GetValue<bool>("UseMockPrinter");

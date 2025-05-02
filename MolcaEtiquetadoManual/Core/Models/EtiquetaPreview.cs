@@ -18,6 +18,13 @@ namespace MolcaEtiquetadoManual.Core.Models
         // Imagen del código de barras
         public BitmapSource ImagenCodigoBarras { get; set; }
 
+        // Constructor por defecto
+        public EtiquetaPreview()
+        {
+            FechaProduccion = DateTime.Now;
+            FechaVencimiento = DateTime.Now.AddDays(30); // Valor por defecto
+        }
+
         // Constructor para crear una vista previa desde una orden y una etiqueta
         public EtiquetaPreview(OrdenProduccion orden, EtiquetaGenerada etiqueta, string codigoBarras = null)
         {

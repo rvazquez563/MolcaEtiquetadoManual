@@ -22,9 +22,9 @@ namespace MolcaEtiquetadoManual.Core.Services
             return _repository.BuscarOrdenPorDun14(dun14);
         }
 
-        public void GuardarEtiqueta(EtiquetaGenerada etiqueta)
+        public string GuardarEtiqueta(EtiquetaGenerada etiqueta)
         {
-            _repository.GuardarEtiqueta(etiqueta);
+            return _repository.GuardarEtiqueta(etiqueta);
         }
         public int ObtenerSiguienteNumeroSecuencialdeldia(string diajuliano)
         {

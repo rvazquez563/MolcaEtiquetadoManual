@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- MolcaEtiquetadoManual/UI/Controls/StepWizardControl.xaml -->
+<UserControl x:Class="MolcaEtiquetadoManual.UI.Controls.StepWizardControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <!-- Estilos para los indicadores de pasos -->
+        <Style x:Key="StepConnector" TargetType="Rectangle">
+            <Setter Property="Height" Value="2"/>
+            <Setter Property="Fill" Value="{DynamicResource MaterialDesignDivider}"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Control personalizado para indicador de paso -->
+        <Style x:Key="StepIndicatorStyle" TargetType="Border">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Active">
+                    <Setter Property="Background" Value="{DynamicResource PrimaryHueMidBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryHueDarkBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Indicador de progreso en los pasos -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Paso 1 -->
+            <Border x:Name="step1Indicator"
+                   Grid.Column="0"
+                   Style="{StaticResource StepIndicatorStyle}"
+                   Tag="Active">
+                <TextBlock Text="1" 
+                           Foreground="White"
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+            </Border>
+
+            <TextBlock x:Name="step1Text"
+                       Text="Escanear DUN14"
+                       Grid.Column="0"
+                       HorizontalAlignment="Center"
+                       Margin="0,35,0,0"
+                       FontWeight="Bold"/>
+
+            <!-- Conector 1-2 -->
+            <Rectangle Grid.Column="1" Style="{StaticResource StepConnector}"/>
+
+            <!-- Paso 2 -->
+            <Border x:Name="step2Indicator"
+                   Grid.Column="2"
+                   Style="{StaticResource StepIndicatorStyle}"
+                   Tag="Inactive">
+                <TextBlock Text="2" 
+                           Foreground="White"
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+            </Border>
+
+            <TextBlock x:Name="step2Text"
+                       Text="Imprimir Etiqueta"
+                       Grid.Column="2"
+                       HorizontalAlignment="Center"
+                       Margin="0,35,0,0"
+                       FontWeight="Normal"/>
+
+            <!-- Conector 2-3 -->
+            <Rectangle Grid.Column="3" Style="{StaticResource StepConnector}"/>
+
+            <!-- Paso 3 -->
+            <Border x:Name="step3Indicator"
+                   Grid.Column="4"
+                   Style="{StaticResource StepIndicatorStyle}"
+                   Tag="Inactive">
+                <TextBlock Text="3" 
+                           Foreground="White"
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+            </Border>
+
+            <TextBlock x:Name="step3Text"
+                       Text="Verificar y Confirmar"
+                       Grid.Column="4"
+                       HorizontalAlignment="Center"
+                       Margin="0,35,0,0"
+                       FontWeight="Normal"/>
+        </Grid>
+
+        <!-- Contenido de los pasos -->
+        <Grid Grid.Row="1">
+            <!-- Panel para Paso 1 -->
+            <Grid x:Name="step1Panel" Visibility="Visible">
+                <Border Background="White" 
+                        CornerRadius="4"
+                        Padding="15">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Paso 1: Escanear DUN14"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,15"/>
+
+                        <StackPanel x:Name="step1Content"/>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- Panel para Paso 2 -->
+            <Grid x:Name="step2Panel" Visibility="Collapsed">
+                <Border Background="White" 
+                        CornerRadius="4"
+                        Padding="15">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Paso 2: Imprimir Etiqueta"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,15"/>
+
+                        <StackPanel x:Name="step2Content"/>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- Panel para Paso 3 -->
+            <Grid x:Name="step3Panel" Visibility="Collapsed">
+                <Border Background="White" 
+                        CornerRadius="4"
+                        Padding="15">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Paso 3: Verificar y Confirmar"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,15"/>
+
+                        <StackPanel x:Name="step3Content"/>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

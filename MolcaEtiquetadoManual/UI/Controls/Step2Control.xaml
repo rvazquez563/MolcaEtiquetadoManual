@@ -1,0 +1,202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="MolcaEtiquetadoManual.UI.Controls.Step2Control"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:local="clr-namespace:MolcaEtiquetadoManual.UI.Controls"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="700">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Título del paso -->
+        <TextBlock Text="Revise los datos y genere la etiqueta" 
+                   Grid.Row="0"
+                   FontSize="16"
+                   Margin="0,0,0,15"/>
+
+        <!-- Contenido principal -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Panel izquierdo - Datos de la orden -->
+            <Grid Grid.Column="0" Margin="0,0,20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Fila 1 -->
+                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,10">
+                    <TextBlock Text="Número de Artículo" FontWeight="Medium"/>
+                    <TextBox x:Name="txtNumeroArticulo" 
+                             IsReadOnly="True"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,10">
+                    <TextBlock Text="DUN14" FontWeight="Medium"/>
+                    <TextBox x:Name="txtDUN14" 
+                             IsReadOnly="True"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                </StackPanel>
+
+                <!-- Fila 2 -->
+                <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,10">
+                    <TextBlock Text="Descripción" FontWeight="Medium"/>
+                    <TextBox x:Name="txtDescripcion" 
+                             IsReadOnly="True"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                </StackPanel>
+
+                <!-- Fila 3 -->
+                <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,10">
+                    <TextBlock Text="Programa de Producción" FontWeight="Medium"/>
+                    <TextBox x:Name="txtProgramaProduccion" 
+                             IsReadOnly="True"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
+                    <TextBlock Text="Cantidad por Pallet" FontWeight="Medium"/>
+                    <TextBox x:Name="txtCantidadPallet" 
+                             IsReadOnly="True"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                </StackPanel>
+
+                <!-- Fila 4 -->
+                <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,10">
+                    <TextBlock Text="Turno / Lote" FontWeight="Medium"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="txtTurno" 
+                                 Grid.Column="0"
+                                 Width="40"
+                                 IsReadOnly="True"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+                        <TextBox x:Name="txtLote" 
+                                 Grid.Column="1"
+                                 Margin="5,0,0,0"
+                                 IsReadOnly="True"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,10">
+                    <TextBlock Text="Fechas" FontWeight="Medium"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox x:Name="txtFechaProduccion" 
+                                 Grid.Column="0"
+                                 materialDesign:HintAssist.Hint="Producción"
+                                 IsReadOnly="True"
+                                 Margin="0,0,5,0"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+                        <TextBox x:Name="txtFechaCaducidad" 
+                                 Grid.Column="1"
+                                 materialDesign:HintAssist.Hint="Caducidad"
+                                 IsReadOnly="True"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+
+            <!-- Panel derecho - Vista previa de etiqueta -->
+            <Border Grid.Column="1" 
+                    BorderBrush="{DynamicResource MaterialDesignDivider}" 
+                    BorderThickness="1" 
+                    CornerRadius="4"
+                    Width="280">
+                <DockPanel>
+                    <TextBlock Text="Vista previa de etiqueta" 
+                               FontWeight="Medium" 
+                               DockPanel.Dock="Top" 
+                               Padding="10,10,10,5"
+                               Background="{DynamicResource MaterialDesignChipBackground}"/>
+
+                    <!-- Control de vista previa de etiqueta -->
+                    <local:EtiquetaPreviewControl x:Name="etiquetaPreview" 
+                                                 Width="280" 
+                                                 Height="300"
+                                                 Margin="0"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- Mensajes de error y controles inferiores -->
+        <StackPanel Grid.Row="2" Margin="0,15,0,0">
+            <!-- Mensaje de error -->
+            <TextBlock x:Name="txtError" 
+                       Foreground="Red" 
+                       Margin="0,0,0,10"
+                       TextWrapping="Wrap"/>
+
+            <!-- Barra de progreso -->
+            <ProgressBar x:Name="progressBar"
+                         Style="{StaticResource MaterialDesignLinearProgressBar}"
+                         IsIndeterminate="True"
+                         Height="4"
+                         Margin="0,0,0,15"
+                         Visibility="Collapsed"/>
+
+            <!-- Botones -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Instrucciones adicionales -->
+                <TextBlock Grid.Column="0" 
+                           TextWrapping="Wrap" 
+                           VerticalAlignment="Center">
+                    Verifique los datos antes de imprimir. La etiqueta se guardará automáticamente.
+                </TextBlock>
+
+                <!-- Botón Cancelar -->
+                <Button Grid.Column="1"
+                        Content="CANCELAR"
+                        x:Name="btnCancelar"
+                        Click="BtnCancelar_Click"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        Margin="10,0"/>
+
+                <!-- Botón Imprimir -->
+                <Button Grid.Column="2"
+                        Content="IMPRIMIR ETIQUETA"
+                        x:Name="btnImprimirEtiqueta"
+                        Click="BtnImprimirEtiqueta_Click"
+                        Style="{StaticResource MaterialDesignRaisedAccentButton}"
+                        IsEnabled="False"/>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</UserControl>

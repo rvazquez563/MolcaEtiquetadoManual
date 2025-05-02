@@ -91,12 +91,26 @@ namespace MolcaEtiquetadoManual.Data.Repositories
             return resultado;
         }
 
-        public void GuardarEtiqueta(EtiquetaGenerada etiqueta)
+        public string GuardarEtiqueta(EtiquetaGenerada etiqueta)
         {
-            _context.EtiquetasGeneradas.Add(etiqueta);
-            _context.SaveChanges();
+            try
+            {
+                _context.EtiquetasGeneradas.Add(etiqueta);
+                _context.SaveChanges();
+                return "Etiqueta guardada correctamente.";
+            }
+            catch (DbUpdateException ex)
+            {
+                // Manejar la excepción de actualización de base de datos
+                //throw new Exception("Error al guardar la etiqueta en la base de datos.", ex);
+                return "Error al guardar la etiqueta en la base de datos. " + ex.Message;
+            }
+            catch (Exception ex)
+            {
+                // Manejar otras excepciones
+                return "Error inesperado al guardar la etiqueta. "+ ex.Message;
+            }
         }
-
         public int ObtenerSiguienteNumeroSecuencial(string programaProduccion)
         {
             

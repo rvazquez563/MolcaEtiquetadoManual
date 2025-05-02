@@ -6,7 +6,7 @@ namespace MolcaEtiquetadoManual.Core.Interfaces
     public interface IEtiquetadoService
     {
         OrdenProduccion BuscarOrdenPorDun14(string dun14);
-        void GuardarEtiqueta(EtiquetaGenerada etiqueta);
+        string GuardarEtiqueta(EtiquetaGenerada etiqueta);
         int ObtenerSiguienteNumeroSecuencialdeldia(string diajuliano);
         int ObtenerSiguienteNumeroSecuencial(string programaProduccion);
         List<EtiquetaGenerada> ObtenerEtiquetasGeneradas(DateTime fechaInicio, DateTime fechaFin);
