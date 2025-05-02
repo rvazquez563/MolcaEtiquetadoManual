@@ -73,12 +73,12 @@ namespace MolcaEtiquetadoManual
             // Registrar repositorios
             services.AddTransient<UsuarioRepository>();
             services.AddTransient<EtiquetadoRepository>();
-
+            services.AddTransient<LineaProduccionRepository>();
             // Registrar servicios
             services.AddTransient<IUsuarioService, UsuarioService>();
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
             services.AddTransient<ITurnoService, TurnoService>();
-
+            services.AddTransient<ILineaProduccionService, LineaProduccionService>();
             // Registrar servicio de códigos de barras
             services.AddSingleton<IBarcodeService, ZXingBarcodeService>();
 

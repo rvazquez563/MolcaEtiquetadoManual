@@ -58,5 +58,8 @@ namespace MolcaEtiquetadoManual.Core.Models
 
         public DateTime FechaCreacion { get; set; }
         public bool Confirmada { get; set; }
+
+        [Column("LINEID")]
+        public int LineaId { get; set; }
     }
 }

@@ -7,11 +7,11 @@ namespace MolcaEtiquetadoManual.Core.Interfaces
     {
         OrdenProduccion BuscarOrdenPorDun14(string dun14);
         string GuardarEtiqueta(EtiquetaGenerada etiqueta);
-        int ObtenerSiguienteNumeroSecuencialdeldia(string diajuliano);
-        int ObtenerSiguienteNumeroSecuencial(string programaProduccion);
+        int ObtenerSiguienteNumeroSecuencialdeldia(string diajuliano, int linea);
+        int ObtenerSiguienteNumeroSecuencial(string programaProduccion,int linea);
         List<EtiquetaGenerada> ObtenerEtiquetasGeneradas(DateTime fechaInicio, DateTime fechaFin);
-        int GuardarEtiquetaConStoredProcedure(EtiquetaGenerada etiqueta);
-        int ObtenerSiguienteNumeroPallet(string programaProduccion);
+
+
 
     }
 }

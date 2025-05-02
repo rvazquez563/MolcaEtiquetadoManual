@@ -82,6 +82,10 @@ namespace MolcaEtiquetadoManual.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("LOTN");
 
+                    b.Property<int>("LineaId")
+                        .HasColumnType("int")
+                        .HasColumnName("LINEID");
+
                     b.Property<int>("SEC")
                         .HasColumnType("int")
                         .HasColumnName("SEC");
@@ -105,8 +109,9 @@ namespace MolcaEtiquetadoManual.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("UOM");
 
-                    b.Property<DateTime>("URDT")
-                        .HasColumnType("datetime2")
+                    b.Property<string>("URDT")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("URDT");
 
                     b.Property<string>("URRF")
@@ -117,6 +122,30 @@ namespace MolcaEtiquetadoManual.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SALIDA", (string)null);
+                });
+
+            modelBuilder.Entity("MolcaEtiquetadoManual.Core.Models.LineaProduccion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LineasProduccion", (string)null);
                 });
 
             modelBuilder.Entity("MolcaEtiquetadoManual.Core.Models.OrdenProduccion", b =>

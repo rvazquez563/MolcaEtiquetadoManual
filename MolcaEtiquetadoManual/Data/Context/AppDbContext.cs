@@ -19,6 +19,7 @@ namespace MolcaEtiquetadoManual.Data.Context
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<OrdenProduccion> OrdenesProduccion { get; set; }
         public DbSet<EtiquetaGenerada> EtiquetasGeneradas { get; set; }
+        public DbSet<LineaProduccion> LineasProduccion { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,7 +66,10 @@ namespace MolcaEtiquetadoManual.Data.Context
                 entity.Property(e => e.SEC).HasColumnName("SEC");
                 entity.Property(e => e.ESTADO).HasColumnName("ESTADO");
                 entity.Property(e => e.URRF).HasColumnName("URRF");
+                entity.Property(e => e.LineaId).HasColumnName("LINEID");
             });
+            modelBuilder.Entity<LineaProduccion>().ToTable("LineasProduccion");
+            modelBuilder.Entity<LineaProduccion>().HasKey(l => l.Id);
             // Configuración de clave primaria
             modelBuilder.Entity<Usuario>().HasKey(u => u.Id);
             modelBuilder.Entity<OrdenProduccion>().HasKey(o => o.IdLogico);

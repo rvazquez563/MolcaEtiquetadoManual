@@ -12,8 +12,8 @@ using MolcaEtiquetadoManual.Data.Context;
 namespace MolcaEtiquetadoManual.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250424013001_VuelvoALaPrimera")]
-    partial class VuelvoALaPrimera
+    [Migration("20250502230657_Creardb")]
+    partial class Creardb
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -42,8 +42,9 @@ namespace MolcaEtiquetadoManual.Migrations
                         .HasColumnType("nvarchar(6)")
                         .HasColumnName("DOCO");
 
-                    b.Property<DateTime>("EDDT")
-                        .HasColumnType("datetime2")
+                    b.Property<string>("EDDT")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("EDDT");
 
                     b.Property<int>("EDLN")
@@ -83,6 +84,14 @@ namespace MolcaEtiquetadoManual.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("LOTN");
 
+                    b.Property<int>("LineaId")
+                        .HasColumnType("int")
+                        .HasColumnName("LINEID");
+
+                    b.Property<int>("SEC")
+                        .HasColumnType("int")
+                        .HasColumnName("SEC");
+
                     b.Property<string>("SHFT")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
@@ -102,8 +111,9 @@ namespace MolcaEtiquetadoManual.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("UOM");
 
-                    b.Property<DateTime>("URDT")
-                        .HasColumnType("datetime2")
+                    b.Property<string>("URDT")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("URDT");
 
                     b.Property<string>("URRF")
@@ -111,13 +121,33 @@ namespace MolcaEtiquetadoManual.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("URRF");
 
-                    b.Property<int>("UsuarioId")
-                        .HasColumnType("int")
-                        .HasColumnName("SEC");
-
                     b.HasKey("Id");
 
                     b.ToTable("SALIDA", (string)null);
+                });
+
+            modelBuilder.Entity("MolcaEtiquetadoManual.Core.Models.LineaProduccion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LineasProduccion", (string)null);
                 });
 
             modelBuilder.Entity("MolcaEtiquetadoManual.Core.Models.OrdenProduccion", b =>

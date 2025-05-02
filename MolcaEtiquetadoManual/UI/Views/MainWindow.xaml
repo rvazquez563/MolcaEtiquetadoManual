@@ -43,7 +43,14 @@
                                    Height="24" 
                                    Width="24" 
                                    VerticalAlignment="Center"/>
-
+                    
+                    <Button Style="{StaticResource MaterialDesignToolButton}"
+                              x:Name="btnConfigLinea"
+                              ToolTip="Configuración de Línea"
+                              Margin="8 0"
+                              Click="BtnConfigLinea_Click">     
+                        <materialDesign:PackIcon Kind="Factory" Height="24" Width="24"/>
+                    </Button>
                     <!-- Botón de gestión de usuarios -->
                     <Button Style="{StaticResource MaterialDesignToolButton}"
                   x:Name="btnUsuarios"

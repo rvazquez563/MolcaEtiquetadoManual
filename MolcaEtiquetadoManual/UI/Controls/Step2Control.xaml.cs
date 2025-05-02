@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using Microsoft.Extensions.Configuration;
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Models;
 
@@ -20,6 +21,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private readonly IJulianDateService _julianDateService;
         private readonly IEtiquetaPreviewService _etiquetaPreviewService;
         private readonly Usuario _currentUser;
+        private readonly IConfiguration _configuration;
 
         private OrdenProduccion _currentOrden;
         private EtiquetaGenerada _etiquetaActual;
@@ -38,7 +40,9 @@ namespace MolcaEtiquetadoManual.UI.Controls
             ILogService logService,
             IJulianDateService julianDateService,
             IEtiquetaPreviewService etiquetaPreviewService,
-            Usuario currentUser)
+            Usuario currentUser,
+            IConfiguration configuration
+            )
         {
             InitializeComponent();
 
@@ -50,6 +54,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
             _julianDateService = julianDateService ?? throw new ArgumentNullException(nameof(julianDateService));
             _etiquetaPreviewService = etiquetaPreviewService ?? throw new ArgumentNullException(nameof(etiquetaPreviewService));
             _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
+            _configuration= configuration ?? throw new ArgumentNullException(nameof(configuration));    
 
             // Inicializar a vacío
             Limpiar();
@@ -313,6 +318,17 @@ namespace MolcaEtiquetadoManual.UI.Controls
             int numeroSecuencial = 1;
             int numeroPallet = 1;
             string fechaJuliana = "";
+            int lineaId = 1;
+            try
+            {
+
+                var lineNumber = _configuration.GetValue<string>("AppSettings:LineNumber") ?? "1";
+                lineaId = int.Parse(lineNumber);
+            }
+            catch
+            {
+                _logService.Warning("No se pudo obtener el número de línea desde la configuración, usando valor por defecto: 1");
+            }
 
             try
             {
@@ -330,7 +346,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 // Obtener secuencial del día con manejo de errores
                 try
                 {
-                    numeroSecuencial = _etiquetadoService.ObtenerSiguienteNumeroSecuencialdeldia(fechaJuliana);
+                    numeroSecuencial = _etiquetadoService.ObtenerSiguienteNumeroSecuencialdeldia(fechaJuliana, lineaId);
                 }
                 catch (Exception ex)
                 {
@@ -341,7 +357,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 // Obtener número de pallet secuencial con manejo de errores
                 try
                 {
-                    numeroPallet = _etiquetadoService.ObtenerSiguienteNumeroSecuencial(orden.ProgramaProduccion);
+                    numeroPallet = _etiquetadoService.ObtenerSiguienteNumeroSecuencial(orden.ProgramaProduccion, lineaId);
                 }
                 catch (Exception ex)
                 {

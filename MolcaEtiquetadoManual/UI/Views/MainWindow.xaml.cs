@@ -6,6 +6,7 @@ using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Models;
 using MolcaEtiquetadoManual.UI.Controls;
 using Microsoft.Extensions.Configuration;
+using MolcaEtiquetadoManual.Core.Services;
 
 namespace MolcaEtiquetadoManual.UI.Views
 {
@@ -19,8 +20,8 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly IBarcodeService _barcodeService;
         private readonly IJulianDateService _julianDateService;
         private readonly IConfiguration _configuration;
-        private readonly IEtiquetaPreviewService _etiquetaPreviewService;
-
+        private readonly IEtiquetaPreviewService _etiquetaPreviewService; 
+        private readonly ILineaProduccionService _lineaService;
         private readonly Usuario _currentUser;
 
         // Controles de pasos
@@ -38,6 +39,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                         ITurnoService turnoService,
                         ILogService logService,
                         IEtiquetaPreviewService etiquetaPreviewService,
+                        ILineaProduccionService lineaService,
                         IBarcodeService barcodeService = null,
                         IJulianDateService julianDateService = null,
                         IConfiguration configuration = null)
@@ -52,12 +54,15 @@ namespace MolcaEtiquetadoManual.UI.Views
             _turnoService = turnoService ?? throw new ArgumentNullException(nameof(turnoService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _etiquetaPreviewService = etiquetaPreviewService ?? throw new ArgumentNullException(nameof(etiquetaPreviewService));
+            _lineaService = lineaService ?? throw new ArgumentNullException(nameof(lineaService));
 
             // Estos pueden ser opcionales, así que no lanzamos excepciones
             _barcodeService = barcodeService;
             _julianDateService = julianDateService;
             _configuration = configuration;
 
+
+            ActualizarTituloConNumeroLinea();
             // Inicializar la colección de actividad
             ActivityItems = new ObservableCollection<ActivityLogItem>();
             lvActividad.ItemsSource = ActivityItems;
@@ -125,7 +130,8 @@ namespace MolcaEtiquetadoManual.UI.Views
                     _logService,
                     _julianDateService,
                     _etiquetaPreviewService,
-                    _currentUser);
+                    _currentUser,
+                    _configuration);
                 _step2Control.EtiquetaImpresa += Step2Control_EtiquetaImpresa;
                 _step2Control.CancelarSolicitado += Step2Control_CancelarSolicitado;
                 _step2Control.ActivityLog += AddActivityLogItem;
@@ -224,7 +230,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             _logService.Information("Sesión cerrada - Usuario: {Username}", _currentUser.NombreUsuario);
 
             var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
-                                            _turnoService, _logService, _etiquetaPreviewService, _barcodeService,
+                                            _turnoService, _logService, _etiquetaPreviewService,_lineaService, _barcodeService,
                                             _julianDateService, _configuration);
             loginWindow.Show();
             this.Close();
@@ -351,6 +357,61 @@ namespace MolcaEtiquetadoManual.UI.Views
                 case ActivityLogItem.LogLevel.Debug:
                     _logService.Debug(message);
                     break;
+            }
+        }
+
+        private void BtnConfigLinea_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Verificar si el usuario tiene permisos (solo administradores)
+                if (_currentUser.Rol != "Administrador")
+                {
+                    MessageBox.Show("Solo los administradores pueden acceder a la configuración de línea.",
+                        "Acceso Restringido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Crear y mostrar la ventana de configuración
+
+                var configWindow = new LineSettingsWindow(_logService, _lineaService, _configuration);
+                configWindow.Owner = this;
+
+                _logService.Information("Abriendo ventana de configuración de línea - Usuario: {Username}",
+                    _currentUser.NombreUsuario);
+
+                // Mostrar como diálogo modal
+                configWindow.ShowDialog();
+
+                // Si se cambiaron las configuraciones, actualizar el título con el nuevo número de línea
+                if (configWindow.SettingsChanged)
+                {
+                    ActualizarTituloConNumeroLinea();
+                    AddActivityLogItem("Configuración de línea actualizada", ActivityLogItem.LogLevel.Info);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al abrir ventana de configuración de línea");
+                MessageBox.Show($"Error al abrir la configuración de línea: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Método para actualizar el título de la ventana con el número de línea
+        private void ActualizarTituloConNumeroLinea()
+        {
+            try
+            {
+                var lineNumber = _configuration.GetValue<string>("AppSettings:LineNumber") ?? "1";
+                var lineName = _configuration.GetValue<string>("AppSettings:LineName") ?? $"Línea {lineNumber}";
+
+                // Actualizar el título de la ventana
+                this.Title = $"Sistema de Etiquetado Manual - {lineName}";
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al actualizar título con número de línea");
             }
         }
     }
