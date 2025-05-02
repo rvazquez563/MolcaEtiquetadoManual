@@ -35,7 +35,7 @@ namespace MolcaEtiquetadoManual.Core.Models
             Descripcion = orden.Descripcion;
             Lote = etiqueta.LOTN;
             FechaProduccion = DateTime.Now; // Fecha actual para la declaración
-            FechaVencimiento = etiqueta.URDT;
+            FechaVencimiento = etiqueta.EXPR;
             CantidadPorPallet = orden.CantidadPorPallet;
             DUN14 = orden.DUN14;
             CodigoBarras = codigoBarras;

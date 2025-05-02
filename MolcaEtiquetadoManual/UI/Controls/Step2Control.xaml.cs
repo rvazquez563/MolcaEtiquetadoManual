@@ -112,7 +112,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
             var etiquetaTemporal = new EtiquetaGenerada
             {
                 LOTN = $"{_currentOrden.ProgramaProduccion}{turnoActual}",
-                URDT = fechaProduccion.AddDays(_currentOrden.DiasCaducidad),
+                EXPR = fechaProduccion.AddDays(_currentOrden.DiasCaducidad),
                 LITM = _currentOrden.NumeroArticulo,
                 SOQS = _currentOrden.CantidadPorPallet,
                 TDAY = DateTime.Now.ToString("HHmmss"),
@@ -164,7 +164,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     Descripcion = _currentOrden.Descripcion,
                     Lote = etiquetaTemporal.LOTN,
                     FechaProduccion = fechaProduccion,
-                    FechaVencimiento = etiquetaTemporal.URDT,
+                    FechaVencimiento = etiquetaTemporal.EXPR,
                     CantidadPorPallet = _currentOrden.CantidadPorPallet,
                     DUN14 = _currentOrden.DUN14,
                     CodigoBarras = codigoBarrasPreliminar,
@@ -248,7 +248,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 {
                     _etiquetaActual.Confirmada = false;
                     // Intentamos guardar en la BD, pero si falla seguimos con la impresión
-                    int resultado = _etiquetadoService.GuardarEtiquetaConStoredProcedure(_etiquetaActual);
+                    string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
                     _logService.Information("Etiqueta guardada en BD con SEC={0}", resultado);
                 }
                 catch (Exception ex)
@@ -348,6 +348,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     _logService.Error(ex, "Error al obtener secuencial de pallet, usando valor por defecto");
                     numeroPallet = 1; // Valor por defecto para pruebas
                 }
+
             }
             catch (Exception ex)
             {
@@ -375,6 +376,31 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 horaJuliana = fechaProduccion.ToString("HHmmss");
             }
 
+            DateTime fechaVencimiento = fechaProduccion.AddDays(orden.DiasCaducidad);
+            string fechaVencimientoJuliana = string.Empty;
+
+            // Convertir a formato juliano
+            try
+            {
+                if (_julianDateService != null)
+                {
+                    fechaVencimientoJuliana = _julianDateService.ConvertirAFechaJuliana(fechaVencimiento);
+                }
+                else
+                {
+                    // Formato simulado si no hay servicio: 1AADDD
+                    fechaVencimientoJuliana = $"1{fechaVencimiento.ToString("yyDDD")}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al convertir fecha de vencimiento a juliano, usando formato básico");
+                fechaVencimientoJuliana = $"1{fechaVencimiento.ToString("yyDDD")}";
+            }
+
+            // Asignar a la etiqueta (antes guardábamos la fecha DateTime)
+            //_etiquetaActual.URDT = fechaVencimientoJuliana;
+
             return new EtiquetaGenerada
             {
                 EDUS = usuario,
@@ -389,7 +415,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 EXPR = fechaProduccion.AddDays(orden.DiasCaducidad),
                 TDAY = horaJuliana,
                 SHFT = turnoActual,
-                URDT = fechaProduccion.AddDays(orden.DiasCaducidad),
+                URDT = fechaVencimientoJuliana,
                 SEC = numeroPallet,
                 ESTADO = "1", // 1 = Activa/Pendiente
                 URRF = orden.DUN14,

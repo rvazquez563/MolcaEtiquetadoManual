@@ -39,7 +39,7 @@ namespace MolcaEtiquetadoManual.Core.Services
 
                 // Formato de cada campo según la especificación
                 string numeroArticulo = orden.NumeroArticulo.PadLeft(8, '0'); // 8 caracteres
-                string fechaVencimiento = etiqueta.URDT.ToString("ddMMyy");  // 6 caracteres (DDMMAA)
+                string fechaVencimiento = etiqueta.EXPR.ToString("ddMMyy");  // 6 caracteres (DDMMAA)
                 string cantidadPallet = etiqueta.SOQS.ToString("0000"); // 4 caracteres
                 string fechaDeclaracion = DateTime.Now.ToString("ddMMyy"); // 6 caracteres (DDMMAA)
                 string horaDeclaracion = DateTime.Now.ToString("HHmmss"); // 6 caracteres (HHMMSS)

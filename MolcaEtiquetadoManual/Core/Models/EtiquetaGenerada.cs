@@ -45,7 +45,7 @@ namespace MolcaEtiquetadoManual.Core.Models
         public string SHFT { get; set; }  // Turno (1-2-3)
 
         [Column("URDT")]
-        public DateTime URDT { get; set; }  // Fecha de caducidad
+        public string URDT { get; set; }
 
         [Column("SEC")]
         public int SEC { get; set; }

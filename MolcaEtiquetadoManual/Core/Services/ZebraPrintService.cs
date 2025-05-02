@@ -86,7 +86,7 @@ namespace MolcaEtiquetadoManual.Core.Services
         private string GenerarComandoZPL(OrdenProduccion orden, EtiquetaGenerada etiqueta, string codigoBarras)
         {
             // Preparar datos para las variables de la etiqueta
-            string fechaVencimiento = etiqueta.URDT.ToString("ddMMyy");  // Vencimiento FN1
+            string fechaVencimiento = etiqueta.EXPR.ToString("ddMMyy");  // Vencimiento FN1
             string fechaProduccion = DateTime.Now.ToString("yyMMdd HH:mm");  // Fecha Producción FN2
             string lote1 = etiqueta.EDDT;  // Lote 1 - FN3 (Julian Date)
             string lote2 = $"{etiqueta.DOCO}{etiqueta.SEC}";  // Lote 2 - FN4
