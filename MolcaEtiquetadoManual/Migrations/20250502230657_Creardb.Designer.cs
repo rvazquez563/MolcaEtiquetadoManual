@@ -39,7 +39,7 @@ namespace MolcaEtiquetadoManual.Migrations
                     b.Property<string>("DOCO")
                         .IsRequired()
                         .HasMaxLength(6)
-                        .HasColumnType("nvarchar(6)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("DOCO");
 
                     b.Property<string>("EDDT")

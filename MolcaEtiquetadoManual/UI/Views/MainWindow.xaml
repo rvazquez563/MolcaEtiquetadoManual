@@ -22,7 +22,7 @@
         </Grid.RowDefinitions>
 
         <!-- Barra superior -->
-        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" Grid.Row="0">
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="14" Grid.Row="0">
             <DockPanel LastChildFill="False">
                 <!-- Lado izquierdo - Logo y título -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
@@ -86,7 +86,7 @@
         </materialDesign:ColorZone>
 
         <!-- Contenido principal -->
-        <Grid Grid.Row="1" Margin="20">
+        <Grid Grid.Row="1" Margin="5,5,5,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*"/>
                 <ColumnDefinition Width="1.5*"/>

@@ -436,7 +436,8 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 ESTADO = "1", // 1 = Activa/Pendiente
                 URRF = orden.DUN14,
                 FechaCreacion = DateTime.Now,
-                Confirmada = false
+                Confirmada = false,
+                LineaId= Convert.ToInt32(_configuration.GetValue<string>("AppSettings:LineNumber") ?? "0")
             };
         }
 

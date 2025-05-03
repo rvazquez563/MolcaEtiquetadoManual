@@ -38,9 +38,14 @@ namespace MolcaEtiquetadoManual.Data.Repositories
         {
             try
             {
+                etiqueta.Id = 0; // Esto indicará a EF que permita al motor de BD asignar un valor
+
                 _context.EtiquetasGeneradas.Add(etiqueta);
                 _context.SaveChanges();
-                return "Etiqueta guardada correctamente.";
+                return "Etiqueta guardada correctamente. SEC=" + etiqueta.SEC;
+            }catch(SqlException ex)
+            {
+                return "Error al guardar la etiqueta en la base de datos. " + ex.Message;
             }
             catch (DbUpdateException ex)
             {

@@ -44,11 +44,11 @@
             </ComboBox>
 
             <TextBlock Grid.Row="1" Grid.Column="0" Text="Nombre:" VerticalAlignment="Center"/>
-            <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtNombre" Margin="0 5"/>
+            <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtNombre" Margin="0 5" IsReadOnly="True"/>
 
             <TextBlock Grid.Row="2" Grid.Column="0" Text="Descripción:" VerticalAlignment="Center"/>
             <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtDescripcion" Margin="0 5" 
-                     TextWrapping="Wrap" AcceptsReturn="True" Height="60"/>
+                     TextWrapping="Wrap" AcceptsReturn="True" Height="60" IsReadOnly="True"/>
 
             <CheckBox Grid.Row="3" Grid.Column="1" x:Name="chkActiva" 
                       Content="Línea activa" Margin="0 5"

@@ -56,7 +56,7 @@ namespace MolcaEtiquetadoManual.Migrations
                     EDDT = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EDTN = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EDLN = table.Column<int>(type: "int", nullable: false),
-                    DOCO = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
+                    DOCO = table.Column<string>(type: "nvarchar(max)", maxLength: 6, nullable: false),
                     LITM = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SOQS = table.Column<int>(type: "int", nullable: false),
                     UOM = table.Column<string>(type: "nvarchar(max)", nullable: false),

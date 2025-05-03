@@ -20,9 +20,9 @@
 
         <!-- Control personalizado para indicador de paso -->
         <Style x:Key="StepIndicatorStyle" TargetType="Border">
-            <Setter Property="Width" Value="32"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="CornerRadius" Value="20"/>
             <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
             <Setter Property="BorderThickness" Value="2"/>
@@ -42,7 +42,7 @@
         </Grid.RowDefinitions>
 
         <!-- Indicador de progreso en los pasos -->
-        <Grid Grid.Row="0" Margin="0,0,0,20">
+        <Grid Grid.Row="0" Margin="0,0,0,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -52,67 +52,94 @@
             </Grid.ColumnDefinitions>
 
             <!-- Paso 1 -->
-            <Border x:Name="step1Indicator"
-                   Grid.Column="0"
-                   Style="{StaticResource StepIndicatorStyle}"
-                   Tag="Active">
-                <TextBlock Text="1" 
-                           Foreground="White"
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           FontWeight="Bold"/>
-            </Border>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <TextBlock x:Name="step1Text"
-                       Text="Escanear DUN14"
-                       Grid.Column="0"
+                <Border x:Name="step1Indicator"
+                       Grid.Row="0"
+                       Style="{StaticResource StepIndicatorStyle}"
                        HorizontalAlignment="Center"
-                       Margin="0,35,0,0"
-                       FontWeight="Bold"/>
+                       Tag="Active">
+                    <TextBlock Text="1" 
+                               Foreground="White"
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               FontWeight="Bold"
+                               FontSize="15"/>
+                </Border>
+
+                <TextBlock x:Name="step1Text"
+                           Text="Escanear DUN14"
+                           Grid.Row="1"
+                           HorizontalAlignment="Center"
+                           Margin="0,2,0,0"
+                           FontWeight="Bold"/>
+            </Grid>
 
             <!-- Conector 1-2 -->
             <Rectangle Grid.Column="1" Style="{StaticResource StepConnector}"/>
 
             <!-- Paso 2 -->
-            <Border x:Name="step2Indicator"
-                   Grid.Column="2"
-                   Style="{StaticResource StepIndicatorStyle}"
-                   Tag="Inactive">
-                <TextBlock Text="2" 
-                           Foreground="White"
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           FontWeight="Bold"/>
-            </Border>
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <TextBlock x:Name="step2Text"
-                       Text="Imprimir Etiqueta"
-                       Grid.Column="2"
+                <Border x:Name="step2Indicator"
+                       Grid.Row="0"
+                       Style="{StaticResource StepIndicatorStyle}"
                        HorizontalAlignment="Center"
-                       Margin="0,35,0,0"
-                       FontWeight="Normal"/>
+                       Tag="Inactive">
+                    <TextBlock Text="2" 
+                               Foreground="White"
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               FontWeight="Bold"
+                               FontSize="15"/>
+                </Border>
+
+                <TextBlock x:Name="step2Text"
+                           Text="Imprimir Etiqueta"
+                           Grid.Row="1"
+                           HorizontalAlignment="Center"
+                           Margin="0,2,0,0"
+                           FontWeight="Normal"/>
+            </Grid>
 
             <!-- Conector 2-3 -->
             <Rectangle Grid.Column="3" Style="{StaticResource StepConnector}"/>
 
             <!-- Paso 3 -->
-            <Border x:Name="step3Indicator"
-                   Grid.Column="4"
-                   Style="{StaticResource StepIndicatorStyle}"
-                   Tag="Inactive">
-                <TextBlock Text="3" 
-                           Foreground="White"
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           FontWeight="Bold"/>
-            </Border>
+            <Grid Grid.Column="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <TextBlock x:Name="step3Text"
-                       Text="Verificar y Confirmar"
-                       Grid.Column="4"
+                <Border x:Name="step3Indicator"
+                       Grid.Row="0"
+                       Style="{StaticResource StepIndicatorStyle}"
                        HorizontalAlignment="Center"
-                       Margin="0,35,0,0"
-                       FontWeight="Normal"/>
+                       Tag="Inactive">
+                    <TextBlock Text="3" 
+                               Foreground="White"
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               FontWeight="Bold"
+                               FontSize="15"/>
+                </Border>
+
+                <TextBlock x:Name="step3Text"
+                           Text="Verificar y Confirmar"
+                           Grid.Row="1"
+                           HorizontalAlignment="Center"
+                           Margin="0,2,0,0"
+                           FontWeight="Normal"/>
+            </Grid>
         </Grid>
 
         <!-- Contenido de los pasos -->
@@ -129,7 +156,9 @@
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,15"/>
 
-                        <StackPanel x:Name="step1Content"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="step1Content"/>
+                        </ScrollViewer>
                     </DockPanel>
                 </Border>
             </Grid>
@@ -146,7 +175,9 @@
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,15"/>
 
-                        <StackPanel x:Name="step2Content"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="step2Content"/>
+                        </ScrollViewer>
                     </DockPanel>
                 </Border>
             </Grid>
@@ -163,7 +194,9 @@
                                    FontWeight="SemiBold"
                                    Margin="0,0,0,15"/>
 
-                        <StackPanel x:Name="step3Content"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="step3Content"/>
+                        </ScrollViewer>
                     </DockPanel>
                 </Border>
             </Grid>

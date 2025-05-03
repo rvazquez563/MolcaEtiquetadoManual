@@ -175,10 +175,17 @@ namespace MolcaEtiquetadoManual.UI.Views
                 }
 
                 var appSettings = jsonObject["AppSettings"] as System.Collections.Generic.Dictionary<string, object>;
+                if (appSettings == null)
+                {
+                    // Crear un nuevo diccionario si el casting falló
+                    appSettings = new System.Collections.Generic.Dictionary<string, object>();
+                    jsonObject["AppSettings"] = appSettings;
+                }
 
-                // Actualizar valores
+                // Ahora puedes asignar valores con seguridad
                 appSettings["LineNumber"] = lineNumber;
                 appSettings["LineName"] = lineName;
+         
 
                 // Guardar cambios
                 string updatedJson = System.Text.Json.JsonSerializer.Serialize(jsonObject, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });

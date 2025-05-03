@@ -1,9 +1,15 @@
 ﻿using System;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 using MolcaEtiquetadoManual.Core.Interfaces;
+using MolcaEtiquetadoManual.Core.Models;
+using System.IO;
+using System.Linq;
+using System.Text.Json.Nodes;
+using System.Text.Json;
+
 
 namespace MolcaEtiquetadoManual.UI.Views
 {
@@ -37,9 +43,47 @@ namespace MolcaEtiquetadoManual.UI.Views
                 chkUseMockPrinter.IsChecked = bool.Parse(printerSettings["UseMockPrinter"] ?? "true");
                 chkShowPrintDialog.IsChecked = bool.Parse(printerSettings["ShowPrintDialog"] ?? "true");
 
-                // Información sobre directorios de logs
+                // Configurar las rutas de logs
                 string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                txtLogDirectory.Text = Path.Combine(appDataPath, "MolcaEtiquetadoManual", "Logs");
+
+                // Obtener las rutas desde el archivo de configuración o usar valores predeterminados
+                var logsSection = _configuration.GetSection("Serilog:WriteTo");
+                string logDirectory = appDataPath;
+
+                if (logsSection != null && logsSection.GetChildren().Any())
+                {
+                    foreach (var sink in logsSection.GetChildren())
+                    {
+                        if (sink["Name"]?.Equals("File", StringComparison.OrdinalIgnoreCase) == true &&
+                            sink["Args"] != null && sink["Args:path"] != null)
+                        {
+                            // Extraer la ruta del archivo de log
+                            string logPath = sink["Args:path"];
+
+                            // Reemplazar variables de entorno si existen
+                            if (logPath.Contains("%APPDATA%"))
+                            {
+                                logPath = logPath.Replace("%APPDATA%", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+                            }
+                            else if (logPath.Contains("%LOCALAPPDATA%"))
+                            {
+                                logPath = logPath.Replace("%LOCALAPPDATA%", Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+                            }
+
+                            // Obtener el directorio del archivo de log
+                            logDirectory = Path.GetDirectoryName(logPath);
+                            break;
+                        }
+                    }
+                }
+
+                // Si no se encontró una configuración válida, usar la predeterminada
+                if (string.IsNullOrEmpty(logDirectory))
+                {
+                    logDirectory = Path.Combine(appDataPath, "MolcaEtiquetadoManual", "Logs");
+                }
+
+                txtLogDirectory.Text = logDirectory;
                 txtZplDebugDirectory.Text = Path.Combine(appDataPath, "MolcaEtiquetadoManual", "ZplDebug");
 
                 _logService.Information("Configuración de impresora cargada en ventana de configuración");
@@ -73,19 +117,12 @@ namespace MolcaEtiquetadoManual.UI.Views
                     return;
                 }
 
-                // En una aplicación real, aquí actualizaríamos el archivo appsettings.json
-                // Para esta versión mínima, solo mostramos los valores que se guardarían
-                string mensaje = $"Configuración que se guardaría:\n\n" +
-                    $"Dirección IP: {txtIpAddress.Text}\n" +
-                    $"Puerto: {txtPort.Text}\n" +
-                    $"Nombre de formato: {txtFormatName.Text}\n" +
-                    $"Unidad de formato: {txtFormatUnit.Text}\n" +
-                    $"Usar impresora simulada: {chkUseMockPrinter.IsChecked}\n" +
-                    $"Mostrar diálogo de impresión: {chkShowPrintDialog.IsChecked}";
+                // Guardar los valores en el archivo de configuración
+                GuardarConfiguracion();
 
-                _logService.Information("Configuración de impresora actualizada (simulación)");
-                MessageBox.Show(mensaje, "Configuración guardada (simulación)",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                _logService.Information("Configuración de impresora actualizada");
+                MessageBox.Show("Configuración guardada correctamente",
+                    "Configuración guardada", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 _settingsChanged = true;
                 Close();
@@ -95,6 +132,54 @@ namespace MolcaEtiquetadoManual.UI.Views
                 _logService.Error(ex, "Error al guardar configuración de impresora");
                 MessageBox.Show($"Error al guardar la configuración: {ex.Message}",
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void GuardarConfiguracion()
+        {
+            try
+            {
+                // Ruta al archivo de configuración
+                string appSettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+
+                // Leer todas las configuraciones existentes
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                Dictionary<string, object> jsonConfig;
+
+                if (File.Exists(appSettingsPath))
+                {
+                    string jsonContent = File.ReadAllText(appSettingsPath);
+                    jsonConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent);
+                }
+                else
+                {
+                    jsonConfig = new Dictionary<string, object>();
+                }
+
+                // Crear o actualizar la sección PrinterSettings
+                var printerSettings = new Dictionary<string, object>
+                {
+                    ["IpAddress"] = txtIpAddress.Text,
+                    ["Port"] = int.Parse(txtPort.Text),
+                    ["FormatName"] = txtFormatName.Text,
+                    ["FormatUnit"] = txtFormatUnit.Text,
+                    ["UseMockPrinter"] = chkUseMockPrinter.IsChecked == true,
+                    ["ShowPrintDialog"] = chkShowPrintDialog.IsChecked == true
+                };
+
+                // Actualizar en el objeto principal
+                jsonConfig["PrinterSettings"] = printerSettings;
+
+                // Guardar todo el archivo
+                string updatedJson = JsonSerializer.Serialize(jsonConfig, options);
+                File.WriteAllText(appSettingsPath, updatedJson);
+
+                _logService.Information("Archivo de configuración actualizado correctamente");
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al guardar archivo de configuración");
+                throw new Exception("No se pudo actualizar el archivo de configuración", ex);
             }
         }
 
@@ -125,20 +210,65 @@ namespace MolcaEtiquetadoManual.UI.Views
                 }
 
                 string ipAddress = txtIpAddress.Text;
+                int portNumber = int.Parse(txtPort.Text);
 
-                // Simulación de prueba
-                _logService.Information($"Probando conexión con impresora en {ipAddress}:{port}");
+                // Mostrar indicador de progreso
+                var originalContent = btnTestPrinter.Content;
+                btnTestPrinter.IsEnabled = false;
+                btnTestPrinter.Content = "Probando...";
 
-                // Mostrar un mensaje de prueba simulada
-                MessageBox.Show($"Simulando prueba de conexión con la impresora en {ipAddress}:{port}\n\n" +
-                    "En un entorno de producción, esto enviaría un comando ZPL de prueba.",
-                    "Prueba de conexión", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Crear una tarea para probar la conexión en segundo plano
+                Task.Run(() =>
+                {
+                    bool success = false;
+                    string message = "Conexión exitosa con la impresora.";
+
+                    try
+                    {
+                        // Intentar establecer una conexión TCP a la impresora
+                        using (var client = new System.Net.Sockets.TcpClient())
+                        {
+                            var task = client.ConnectAsync(ipAddress, portNumber);
+                            // Esperar hasta 3 segundos para la conexión
+                            if (task.Wait(3000))
+                            {
+                                success = true;
+                            }
+                            else
+                            {
+                                message = "Tiempo de espera agotado al intentar conectar con la impresora.";
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        message = $"Error al conectar con la impresora: {ex.Message}";
+                        _logService.Error(ex, "Error al probar conexión con impresora {IP}:{Port}", ipAddress, portNumber);
+                    }
+
+                    // Volver al hilo de la UI para mostrar el resultado
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        // Restaurar el botón
+                        btnTestPrinter.IsEnabled = true;
+                        btnTestPrinter.Content = originalContent;
+
+                        // Mostrar el resultado
+                        MessageBox.Show(message,
+                            success ? "Prueba exitosa" : "Error de conexión",
+                            MessageBoxButton.OK,
+                            success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+
+                        _logService.Information("Prueba de conexión: {Result}", success ? "Exitosa" : "Fallida");
+                    });
+                });
             }
             catch (Exception ex)
             {
-                _logService.Error(ex, "Error al probar conexión con impresora");
-                MessageBox.Show($"Error al probar la conexión: {ex.Message}",
+                _logService.Error(ex, "Error en la prueba de conexión");
+                MessageBox.Show($"Error al iniciar la prueba: {ex.Message}",
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                btnTestPrinter.IsEnabled = true;
             }
         }
 
