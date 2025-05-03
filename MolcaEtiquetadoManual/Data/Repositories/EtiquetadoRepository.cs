@@ -32,31 +32,41 @@ namespace MolcaEtiquetadoManual.Data.Repositories
         }
 
         // Reemplazar el uso de SqlQueryRaw con FromSqlInterpolated para corregir el error CS1061
-      
+
 
         public string GuardarEtiqueta(EtiquetaGenerada etiqueta)
         {
             try
             {
-                etiqueta.Id = 0; // Esto indicará a EF que permita al motor de BD asignar un valor
+                // Check if the etiqueta already exists in the database
+                var existingEtiqueta = _context.EtiquetasGeneradas.FirstOrDefault(e => e.Id == etiqueta.Id);
 
-                _context.EtiquetasGeneradas.Add(etiqueta);
+                if (existingEtiqueta != null)
+                {
+                    // Update existing entity
+                    _context.Entry(existingEtiqueta).CurrentValues.SetValues(etiqueta);
+                }
+                else
+                {
+                    // This is a new entity, set Id to 0 to let the database generate a new Id
+                    etiqueta.Id = 0;
+                    _context.EtiquetasGeneradas.Add(etiqueta);
+                }
+
                 _context.SaveChanges();
                 return "Etiqueta guardada correctamente. SEC=" + etiqueta.SEC;
-            }catch(SqlException ex)
+            }
+            catch (SqlException ex)
             {
                 return "Error al guardar la etiqueta en la base de datos. " + ex.Message;
             }
             catch (DbUpdateException ex)
             {
-                // Manejar la excepción de actualización de base de datos
-                //throw new Exception("Error al guardar la etiqueta en la base de datos.", ex);
                 return "Error al guardar la etiqueta en la base de datos. " + ex.Message;
             }
             catch (Exception ex)
             {
-                // Manejar otras excepciones
-                return "Error inesperado al guardar la etiqueta. "+ ex.Message;
+                return "Error inesperado al guardar la etiqueta. " + ex.Message;
             }
         }
         public int ObtenerSiguienteNumeroSecuencial(string programaProduccion, int lineaId)

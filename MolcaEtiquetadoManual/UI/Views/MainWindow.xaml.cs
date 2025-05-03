@@ -202,6 +202,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         #region Manejadores de eventos de Step3Control
         private void Step3Control_EtiquetaConfirmada(object sender, EventArgs e)
         {
+            ActivityItems.Clear();
             // Registrar confirmación
             AddActivityLogItem("Etiqueta confirmada correctamente. Listo para un nuevo ciclo.", ActivityLogItem.LogLevel.Info);
 
