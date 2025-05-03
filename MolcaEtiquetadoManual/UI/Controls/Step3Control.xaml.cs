@@ -84,11 +84,25 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
         private void BtnCancelar_Click(object sender, RoutedEventArgs e)
         {
+            if (_etiquetaActual != null)
+            {
+                // Registrar el motivo de cancelación
+                _etiquetaActual.MotivoNoConfirmacion = "Cancelado por el usuario en paso 3";
+                try
+                {
+                    _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
+                    _logService.Information("Etiqueta cancelada por el usuario en paso 3, registrada en BD");
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error al guardar etiqueta cancelada en paso 3");
+                }
+            }
+
             // Notificar que se solicitó cancelar
             ActivityLog?.Invoke("Verificación cancelada por el usuario", ActivityLogItem.LogLevel.Info);
             CancelarSolicitado?.Invoke(this, EventArgs.Empty);
         }
-
         private void VerificarCodigoBarras()
         {
             if (_etiquetaActual == null || string.IsNullOrEmpty(_expectedBarcode))

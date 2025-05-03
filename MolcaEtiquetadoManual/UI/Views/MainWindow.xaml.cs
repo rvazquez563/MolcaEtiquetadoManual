@@ -23,7 +23,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly IEtiquetaPreviewService _etiquetaPreviewService; 
         private readonly ILineaProduccionService _lineaService;
         private readonly Usuario _currentUser;
-
+        private bool enciclo = false;
         // Controles de pasos
         private Step1Control _step1Control;
         private Step2Control _step2Control;
@@ -45,7 +45,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                         IConfiguration configuration = null)
         {
             InitializeComponent();
-
+            this.Closing += MainWindow_Closing;
             // Validación explícita para evitar NullReferenceException
             _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
             _etiquetadoService = etiquetadoService ?? throw new ArgumentNullException(nameof(etiquetadoService));
@@ -111,6 +111,23 @@ namespace MolcaEtiquetadoManual.UI.Views
             AddActivityLogItem("Escanee un código DUN-14 para comenzar", ActivityLogItem.LogLevel.Info);
         }
 
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (enciclo)
+            {
+                // Hay un proceso en curso, no permitir cerrar
+                e.Cancel = true;
+                _logService.Warning("No se puede cerrar la aplicación mientras hay un proceso de impresión en curso.", _currentUser.NombreUsuario);
+                AddActivityLogItem("\"No se puede cerrar la aplicación mientras hay un proceso de impresión en curso.", ActivityLogItem.LogLevel.Warning);
+                // Mostrar mensaje al usuario
+                MessageBox.Show(
+                    "No se puede cerrar la aplicación mientras hay un proceso de impresión en curso.",
+                    "Operación en proceso",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
         private void InitializeStepControls()
         {
             try
@@ -154,6 +171,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         #region Manejadores de eventos de Step1Control
         private void Step1Control_OrdenEncontrada(object sender, OrdenProduccionEventArgs e)
         {
+            enciclo = true;
             // Pasar la orden al control del paso 2
             _step2Control.SetOrden(e.Orden);
 
@@ -174,6 +192,7 @@ namespace MolcaEtiquetadoManual.UI.Views
 
         private void Step2Control_CancelarSolicitado(object sender, EventArgs e)
         {
+            enciclo=false;
             // Volver al paso 1 y limpiar los datos actuales
             _step2Control.Limpiar();
             stepWizard.GoToStep(1);
@@ -193,6 +212,7 @@ namespace MolcaEtiquetadoManual.UI.Views
 
             // Volver al paso 1 para un nuevo ciclo
             stepWizard.GoToStep(1);
+            enciclo = false;
         }
 
         private void Step3Control_CancelarSolicitado(object sender, EventArgs e)
@@ -227,13 +247,24 @@ namespace MolcaEtiquetadoManual.UI.Views
 
         private void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
         {
-            _logService.Information("Sesión cerrada - Usuario: {Username}", _currentUser.NombreUsuario);
+            if (enciclo)
+            {
+                _logService.Warning("No se puede cerrar cesion mientras hay un proceso de impresión en curso.", _currentUser.NombreUsuario);
+                AddActivityLogItem("\"No se puede cerrar cesion mientras hay un proceso de impresión en curso.", ActivityLogItem.LogLevel.Warning);
+                MessageBox.Show("No se puede cerrar cesion mientras hay un proceso de impresión en curso.",
+                       "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            else
+            {
+                _logService.Information("Sesión cerrada - Usuario: {Username}", _currentUser.NombreUsuario);
 
-            var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
-                                            _turnoService, _logService, _etiquetaPreviewService,_lineaService, _barcodeService,
-                                            _julianDateService, _configuration);
-            loginWindow.Show();
-            this.Close();
+                var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
+                                                _turnoService, _logService, _etiquetaPreviewService, _lineaService, _barcodeService,
+                                                _julianDateService, _configuration);
+                loginWindow.Show();
+                this.Close();
+            }
+                
         }
 
         //private void BtnConfigImpresora_Click(object sender, RoutedEventArgs e)

@@ -29,6 +29,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private OrdenProduccion _currentOrden;
         private EtiquetaGenerada _etiquetaActual;
         private string _generatedBarcode;
+        private bool impresioncanceladaxusuario=false;
 
         // Eventos
         public event EventHandler<EtiquetaGeneradaEventArgs> EtiquetaImpresa;
@@ -194,7 +195,15 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
         private void BtnImprimirEtiqueta_Click(object sender, RoutedEventArgs e)
         {
-            ImprimirEtiqueta();
+            var printerSettings = _configuration.GetSection("PrinterSettings");
+            if (bool.Parse(printerSettings["UseMockPrinter"]) == true)
+            {
+                ImprimirEtiqueta1();
+            }
+            else
+            {
+                ImprimirEtiqueta();
+            }
         }
 
         private void BtnCancelar_Click(object sender, RoutedEventArgs e)
@@ -310,7 +319,115 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 ResetearInterfazImpresion();
             }
         }
+        private void ImprimirEtiqueta1()
+        {
+            if (_currentOrden == null)
+            {
+                MostrarError("No hay una orden seleccionada para imprimir");
+                return;
+            }
 
+            // Mostrar indicador de progreso
+            progressBar.Visibility = Visibility.Visible;
+            btnImprimirEtiqueta.IsEnabled = false;
+            txtError.Text = string.Empty;
+
+            try
+            {
+                // Obtener información del turno y fecha
+                var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+                string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
+
+                // Crear la entidad de etiqueta
+                _etiquetaActual = CrearEtiquetaGenerada(_currentOrden, turnoActual, fechaProduccion, numeroTransaccion);
+
+                // Intentar generar el código de barras
+                try
+                {
+                    if (_barcodeService != null)
+                    {
+                        _generatedBarcode = _barcodeService.GenerarCodigoBarras(_currentOrden, _etiquetaActual);
+                        _logService.Debug($"Código de barras generado: {_generatedBarcode}");
+                    }
+                    else
+                    {
+                        // Generamos un código ficticio para pruebas
+                        _generatedBarcode = $"{_currentOrden.NumeroArticulo}-{DateTime.Now:yyMMddHHmmss}-{_etiquetaActual.LOTN}";
+                        _logService.Warning("Usando código de barras ficticio para pruebas: {0}", _generatedBarcode);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error al generar código de barras, usando ficticio");
+                    // Generamos un código ficticio para pruebas en caso de error
+                    _generatedBarcode = $"{_currentOrden.NumeroArticulo}-{DateTime.Now:yyMMddHHmmss}-{_etiquetaActual.LOTN}";
+                }
+
+                // Registrar actividad
+                ActivityLog?.Invoke("Enviando etiqueta a la impresora...", ActivityLogItem.LogLevel.Info);
+
+                // Guardar la etiqueta en la base de datos ANTES de imprimir (con Confirmada = false)
+                try
+                {
+                    _etiquetaActual.Confirmada = false;
+                    // Intentamos guardar en la BD, pero si falla seguimos con la impresión
+                    string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
+                    _logService.Information("Etiqueta guardada en BD con SEC={0}", resultado);
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error al guardar etiqueta en BD, continuando con impresión");
+                }
+
+                // Simular impresión para pruebas
+                bool impresionExitosa = false;
+                try
+                {
+                    // Intentar imprimir a través del servicio
+                    if (_printService != null)
+                    {
+                        impresionExitosa = _printService.ImprimirEtiqueta(_currentOrden, _etiquetaActual, _generatedBarcode);
+                    }
+
+                    // Si no hay servicio o falla, simulamos éxito para pruebas
+                    if (!impresionExitosa)
+                    {
+                        _logService.Warning("Simulando impresión exitosa para pruebas");
+                        impresionExitosa = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error al imprimir, simulando éxito para pruebas");
+                    impresionExitosa = true; // Simulamos éxito para poder seguir con las pruebas
+                }
+
+                if (impresionExitosa)
+                {
+                    ActivityLog?.Invoke("Etiqueta enviada a la impresora. Proceda a verificar.", ActivityLogItem.LogLevel.Info);
+
+                    // Notificar que se imprimió la etiqueta
+                    EtiquetaImpresa?.Invoke(this, new EtiquetaGeneradaEventArgs(_etiquetaActual, _generatedBarcode));
+                }
+                else
+                {
+                    MostrarError("Error al enviar la etiqueta a la impresora");
+                    ActivityLog?.Invoke("Error al enviar la etiqueta a la impresora", ActivityLogItem.LogLevel.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MostrarError($"Error al imprimir la etiqueta: {ex.Message}");
+                _logService.Error(ex, "Error al imprimir etiqueta: {Error}", ex.Message);
+                ActivityLog?.Invoke($"Error al imprimir la etiqueta: {ex.Message}", ActivityLogItem.LogLevel.Error);
+            }
+            finally
+            {
+                // Ocultar indicador de progreso
+                progressBar.Visibility = Visibility.Collapsed;
+                btnImprimirEtiqueta.IsEnabled = true;
+            }
+        }
         // Manejadores de eventos para la impresión en segundo plano
         private void PrintService_PrintProgress(object sender, ZebraPrintService.PrintProgressEventArgs e)
         {
@@ -356,6 +473,17 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     MostrarError(e.Message);
                     ActivityLog?.Invoke(e.Message, ActivityLogItem.LogLevel.Error);
                     ResetearInterfazImpresion();
+                    if (impresioncanceladaxusuario)
+                    {
+                        _etiquetaActual.MotivoNoConfirmacion = "La impresion fue cancelada por el usuario";
+                        string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
+                    }
+                    else
+                    {
+                        _etiquetaActual.MotivoNoConfirmacion = "La impresion dio error: " + e.Message;
+                        string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
+                    }
+                    
                 }
             });
         }
@@ -366,9 +494,12 @@ namespace MolcaEtiquetadoManual.UI.Controls
             {
                 if (_printService is ZebraPrintService zebraPrintService)
                 {
+                    impresioncanceladaxusuario = true;
                     zebraPrintService.CancelarImpresion();
                     ActivityLog?.Invoke("Cancelando impresión...", ActivityLogItem.LogLevel.Warning);
+                    
                 }
+
             }
             catch (Exception ex)
             {
