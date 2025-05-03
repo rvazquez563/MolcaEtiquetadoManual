@@ -155,16 +155,16 @@
                        Margin="0,0,0,10"
                        TextWrapping="Wrap"/>
 
-            <!-- Barra de progreso -->
             <ProgressBar x:Name="progressBar"
-                         Style="{StaticResource MaterialDesignLinearProgressBar}"
-                         IsIndeterminate="True"
-                         Height="4"
-                         Margin="0,0,0,15"
-                         Visibility="Collapsed"/>
+             Style="{StaticResource MaterialDesignLinearProgressBar}"
+             IsIndeterminate="False"
+             Height="4"
+             Margin="0,0,0,15"
+             Visibility="Collapsed"/>
 
             <!-- Botones -->
-            <Grid>
+            <!-- Reemplazar los botones existentes con esto -->
+            <Grid x:Name="panelBotones">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -173,27 +173,62 @@
 
                 <!-- Instrucciones adicionales -->
                 <TextBlock Grid.Column="0" 
-                           TextWrapping="Wrap" 
-                           VerticalAlignment="Center">
-                    Verifique los datos antes de imprimir. La etiqueta se guardará automáticamente.
+               TextWrapping="Wrap" 
+               VerticalAlignment="Center">
+        Verifique los datos antes de imprimir. La etiqueta se guardará automáticamente.
                 </TextBlock>
 
                 <!-- Botón Cancelar -->
                 <Button Grid.Column="1"
-                        Content="CANCELAR"
-                        x:Name="btnCancelar"
-                        Click="BtnCancelar_Click"
-                        Style="{StaticResource MaterialDesignOutlinedButton}"
-                        Margin="10,0"/>
+            Content="CANCELAR"
+            x:Name="btnCancelar"
+            Click="BtnCancelar_Click"
+            Style="{StaticResource MaterialDesignOutlinedButton}"
+            Margin="10,0"/>
 
                 <!-- Botón Imprimir -->
                 <Button Grid.Column="2"
-                        Content="IMPRIMIR ETIQUETA"
-                        x:Name="btnImprimirEtiqueta"
-                        Click="BtnImprimirEtiqueta_Click"
-                        Style="{StaticResource MaterialDesignRaisedAccentButton}"
-                        IsEnabled="False"/>
+            Content="IMPRIMIR ETIQUETA"
+            x:Name="btnImprimirEtiqueta"
+            Click="BtnImprimirEtiqueta_Click"
+            Style="{StaticResource MaterialDesignRaisedAccentButton}"
+            IsEnabled="False"/>
             </Grid>
         </StackPanel>
+        <!-- Agrega esto justo después del cierre de la Grid principal pero antes del cierre del UserControl -->
+        <Grid x:Name="overlayPanel" 
+      Visibility="Collapsed"
+      Panel.ZIndex="100"
+      Background="#80000000"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch">
+            <StackPanel x:Name="overlayButtonPanel"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+                <TextBlock Text="Impresión en progreso" 
+                  FontSize="20"
+                  Foreground="White"
+                  FontWeight="Bold"
+                  TextAlignment="Center"
+                  Margin="0,0,0,15"/>
+
+                <ProgressBar x:Name="overlayProgressBar"
+                     Height="10"
+                     Width="250"
+                     Margin="0,0,0,20"
+                     Value="{Binding ElementName=progressBar, Path=Value}"/>
+
+                <TextBlock x:Name="overlayStatusText"
+                   Text="{Binding ElementName=txtError, Path=Text}"
+                   Foreground="White"
+                   TextAlignment="Center"
+                   Margin="0,0,0,20"
+                   TextWrapping="Wrap"
+                   Width="300"/>
+
+                <!-- El botón de cancelar impresión se agregará aquí programáticamente -->
+            </StackPanel>
+        </Grid>
     </Grid>
+    
 </UserControl>

@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Extensions.Configuration;
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Models;
+using MolcaEtiquetadoManual.Core.Services;
 
 namespace MolcaEtiquetadoManual.UI.Controls
 {
@@ -22,7 +25,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private readonly IEtiquetaPreviewService _etiquetaPreviewService;
         private readonly Usuario _currentUser;
         private readonly IConfiguration _configuration;
-
+        private Button btnCancelarImpresion;
         private OrdenProduccion _currentOrden;
         private EtiquetaGenerada _etiquetaActual;
         private string _generatedBarcode;
@@ -211,8 +214,32 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
             // Mostrar indicador de progreso
             progressBar.Visibility = Visibility.Visible;
+            progressBar.IsIndeterminate = false;
+            progressBar.Value = 0;
             btnImprimirEtiqueta.IsEnabled = false;
             txtError.Text = string.Empty;
+
+            // Ocultar el botón de cancelar que vuelve al paso anterior
+            btnCancelar.Visibility = Visibility.Collapsed;
+
+            // Mostrar overlay para bloquear la interacción con los controles de fondo
+            overlayPanel.Visibility = Visibility.Visible;
+
+            // Crear botón de cancelación si no existe
+            if (btnCancelarImpresion == null)
+            {
+                btnCancelarImpresion = new Button();
+                btnCancelarImpresion.Content = "CANCELAR IMPRESIÓN";
+                btnCancelarImpresion.Style = (Style)FindResource("MaterialDesignRaisedAccentButton");
+                btnCancelarImpresion.Background = new SolidColorBrush(Colors.Orange);
+                btnCancelarImpresion.Foreground = new SolidColorBrush(Colors.White);
+                btnCancelarImpresion.Margin = new Thickness(10);
+                btnCancelarImpresion.Padding = new Thickness(15, 8, 15, 8);
+                btnCancelarImpresion.Click += BtnCancelarImpresion_Click;
+                overlayButtonPanel.Children.Add(btnCancelarImpresion);
+            }
+            btnCancelarImpresion.Visibility = Visibility.Visible;
+          
 
             try
             {
@@ -241,7 +268,6 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 catch (Exception ex)
                 {
                     _logService.Error(ex, "Error al generar código de barras, usando ficticio");
-                    // Generamos un código ficticio para pruebas en caso de error
                     _generatedBarcode = $"{_currentOrden.NumeroArticulo}-{DateTime.Now:yyMMddHHmmss}-{_etiquetaActual.LOTN}";
                 }
 
@@ -252,7 +278,6 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 try
                 {
                     _etiquetaActual.Confirmada = false;
-                    // Intentamos guardar en la BD, pero si falla seguimos con la impresión
                     string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
                     _logService.Information("Etiqueta guardada en BD con SEC={0}", resultado);
                 }
@@ -261,31 +286,65 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     _logService.Error(ex, "Error al guardar etiqueta en BD, continuando con impresión");
                 }
 
-                // Simular impresión para pruebas
-                bool impresionExitosa = false;
-                try
+                // Suscribirse a eventos de progreso y finalización
+                if (_printService is ZebraPrintService zebraPrintService)
                 {
-                    // Intentar imprimir a través del servicio
-                    if (_printService != null)
-                    {
-                        impresionExitosa = _printService.ImprimirEtiqueta(_currentOrden, _etiquetaActual, _generatedBarcode);
-                    }
-
-                    // Si no hay servicio o falla, simulamos éxito para pruebas
-                    if (!impresionExitosa)
-                    {
-                        _logService.Warning("Simulando impresión exitosa para pruebas");
-                        impresionExitosa = true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logService.Error(ex, "Error al imprimir, simulando éxito para pruebas");
-                    impresionExitosa = true; // Simulamos éxito para poder seguir con las pruebas
+                    zebraPrintService.PrintProgress += PrintService_PrintProgress;
+                    zebraPrintService.PrintCompleted += PrintService_PrintCompleted;
                 }
 
-                if (impresionExitosa)
+                // Iniciar la impresión
+                bool impresionIniciada = _printService.ImprimirEtiqueta(_currentOrden, _etiquetaActual, _generatedBarcode);
+
+                if (!impresionIniciada)
                 {
+                    MostrarError("No se pudo iniciar el proceso de impresión");
+                    ResetearInterfazImpresion();
+                }
+            }
+            catch (Exception ex)
+            {
+                MostrarError($"Error al preparar la impresión: {ex.Message}");
+                _logService.Error(ex, "Error al preparar impresión: {Error}", ex.Message);
+                ActivityLog?.Invoke($"Error al preparar impresión: {ex.Message}", ActivityLogItem.LogLevel.Error);
+                ResetearInterfazImpresion();
+            }
+        }
+
+        // Manejadores de eventos para la impresión en segundo plano
+        private void PrintService_PrintProgress(object sender, ZebraPrintService.PrintProgressEventArgs e)
+        {
+            // Asegurarse de que se ejecuta en el hilo de UI
+            Dispatcher.Invoke(() =>
+            {
+                progressBar.Value = e.Percentage;
+                txtError.Text = e.Message;
+                //txtError.Foreground = Brushes.Black; // Color normal para mensajes de progreso
+
+                // Actualizar también el texto en el overlay
+                overlayStatusText.Text = e.Message;
+
+                // Informar a la interfaz de actividad
+                ActivityLog?.Invoke(e.Message, ActivityLogItem.LogLevel.Info);
+            });
+        }
+        private void PrintService_PrintCompleted(object sender, ZebraPrintService.PrintCompletedEventArgs e)
+        {
+            // Desuscribirse de los eventos
+            if (sender is ZebraPrintService zebraPrintService)
+            {
+                zebraPrintService.PrintProgress -= PrintService_PrintProgress;
+                zebraPrintService.PrintCompleted -= PrintService_PrintCompleted;
+            }
+
+            // Asegurarse de que se ejecuta en el hilo de UI
+            Dispatcher.Invoke(() =>
+            {
+                if (e.Success)
+                {
+                    // Exitoso
+                    txtError.Text = e.Message;
+                    //txtError.Foreground = Brushes.Green;
                     ActivityLog?.Invoke("Etiqueta enviada a la impresora. Proceda a verificar.", ActivityLogItem.LogLevel.Info);
 
                     // Notificar que se imprimió la etiqueta
@@ -293,24 +352,42 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 }
                 else
                 {
-                    MostrarError("Error al enviar la etiqueta a la impresora");
-                    ActivityLog?.Invoke("Error al enviar la etiqueta a la impresora", ActivityLogItem.LogLevel.Error);
+                    // Error
+                    MostrarError(e.Message);
+                    ActivityLog?.Invoke(e.Message, ActivityLogItem.LogLevel.Error);
+                    ResetearInterfazImpresion();
+                }
+            });
+        }
+
+        private void BtnCancelarImpresion_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_printService is ZebraPrintService zebraPrintService)
+                {
+                    zebraPrintService.CancelarImpresion();
+                    ActivityLog?.Invoke("Cancelando impresión...", ActivityLogItem.LogLevel.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MostrarError($"Error al imprimir la etiqueta: {ex.Message}");
-                _logService.Error(ex, "Error al imprimir etiqueta: {Error}", ex.Message);
-                ActivityLog?.Invoke($"Error al imprimir la etiqueta: {ex.Message}", ActivityLogItem.LogLevel.Error);
-            }
-            finally
-            {
-                // Ocultar indicador de progreso
-                progressBar.Visibility = Visibility.Collapsed;
-                btnImprimirEtiqueta.IsEnabled = true;
+                _logService.Error(ex, "Error al cancelar impresión");
             }
         }
 
+        private void ResetearInterfazImpresion()
+        {
+            progressBar.Visibility = Visibility.Collapsed;
+            btnImprimirEtiqueta.IsEnabled = true;
+            btnCancelar.Visibility = Visibility.Visible;
+            overlayPanel.Visibility = Visibility.Collapsed;
+
+            if (btnCancelarImpresion != null)
+            {
+                btnCancelarImpresion.Visibility = Visibility.Collapsed;
+            }
+        }
         private EtiquetaGenerada CrearEtiquetaGenerada(OrdenProduccion orden, string turnoActual,
             DateTime fechaProduccion, string numeroTransaccion)
         {
