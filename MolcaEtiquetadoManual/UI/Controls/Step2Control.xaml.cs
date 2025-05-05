@@ -26,7 +26,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private readonly Usuario _currentUser;
         private readonly IConfiguration _configuration;
         private Button btnCancelarImpresion;
-        private OrdenProduccion _currentOrden;
+        public OrdenProduccion _currentOrden;
         private EtiquetaGenerada _etiquetaActual;
         private string _generatedBarcode;
         private bool impresioncanceladaxusuario=false;
@@ -36,6 +36,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
         public event EventHandler CancelarSolicitado;
         public event Action<string, ActivityLogItem.LogLevel> ActivityLog;
 
+        public OrdenProduccion CurrentOrden => _currentOrden;
         public Step2Control(
             IPrintService printService,
             IEtiquetadoService etiquetadoService,
@@ -318,6 +319,22 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 ActivityLog?.Invoke($"Error al preparar impresión: {ex.Message}", ActivityLogItem.LogLevel.Error);
                 ResetearInterfazImpresion();
             }
+        }
+        public void ResetearEstadoImpresion()
+        {
+            progressBar.Visibility = Visibility.Collapsed;
+            btnImprimirEtiqueta.IsEnabled = true; // Habilitar el botón IMPRIMIR
+            btnCancelar.Visibility = Visibility.Visible; // Mostrar el botón CANCELAR
+            overlayPanel.Visibility = Visibility.Collapsed; // Ocultar el overlay
+
+            // Ocultar el botón CANCELAR IMPRESIÓN
+            if (btnCancelarImpresion != null)
+            {
+                btnCancelarImpresion.Visibility = Visibility.Collapsed;
+            }
+
+            // Resetear variables de impresión si es necesario
+            impresioncanceladaxusuario = false;
         }
         private void ImprimirEtiqueta1()
         {

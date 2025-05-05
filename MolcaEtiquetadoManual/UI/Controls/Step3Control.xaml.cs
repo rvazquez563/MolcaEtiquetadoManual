@@ -84,24 +84,30 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
         private void BtnCancelar_Click(object sender, RoutedEventArgs e)
         {
-            if (_etiquetaActual != null)
+            if (MessageBox.Show("¿Desea cancelar la etiqueta?", "Cancelar etiqueta", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
             {
-                // Registrar el motivo de cancelación
-                _etiquetaActual.MotivoNoConfirmacion = "Cancelado por el usuario en paso 3";
-                try
+                if (_etiquetaActual != null)
                 {
-                    _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
-                    _logService.Information("Etiqueta cancelada por el usuario en paso 3, registrada en BD");
+               
+                    // Registrar el motivo de cancelación
+                    _etiquetaActual.MotivoNoConfirmacion = "Cancelado por el usuario en paso 3";
+                    try
+                    {
+                        _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
+                        _logService.Information("Etiqueta cancelada por el usuario en paso 3, registrada en BD");
+                   
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Error(ex, "Error al guardar etiqueta cancelada en paso 3");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logService.Error(ex, "Error al guardar etiqueta cancelada en paso 3");
-                }
+                // Notificar que se solicitó cancelar
+                ActivityLog?.Invoke("Verificación cancelada por el usuario", ActivityLogItem.LogLevel.Info);
+                CancelarSolicitado?.Invoke(this, EventArgs.Empty);
             }
 
-            // Notificar que se solicitó cancelar
-            ActivityLog?.Invoke("Verificación cancelada por el usuario", ActivityLogItem.LogLevel.Info);
-            CancelarSolicitado?.Invoke(this, EventArgs.Empty);
+          
         }
         private void VerificarCodigoBarras()
         {

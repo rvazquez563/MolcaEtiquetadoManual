@@ -63,6 +63,6 @@ namespace MolcaEtiquetadoManual.Core.Models
         public int LineaId { get; set; }
 
         [Column("MOTIVO_NOCONF")]
-        public string MotivoNoConfirmacion { get; set; }
+        public string MotivoNoConfirmacion { get; set; } = "";
     }
 }

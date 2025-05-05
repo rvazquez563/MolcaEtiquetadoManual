@@ -218,8 +218,19 @@ namespace MolcaEtiquetadoManual.UI.Views
 
         private void Step3Control_CancelarSolicitado(object sender, EventArgs e)
         {
-            // Volver al paso 2
-            stepWizard.GoToStep(2);
+            // Obtener la orden actual del Step2
+            ActivityItems.Clear();
+            // Registrar confirmación
+            AddActivityLogItem("Etiqueta cancelada. Listo para un nuevo ciclo.", ActivityLogItem.LogLevel.Warning);
+
+            // Resetear controles
+            _step1Control.Reiniciar();
+            _step2Control.Limpiar();
+            _step3Control.Limpiar();
+
+            // Volver al paso 1 para un nuevo ciclo
+            stepWizard.GoToStep(1);
+            enciclo = false;
         }
         #endregion
 
