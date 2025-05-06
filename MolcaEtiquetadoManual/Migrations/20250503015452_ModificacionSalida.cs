@@ -12,7 +12,7 @@ namespace MolcaEtiquetadoManual.Migrations
                 name: "MOTIVO_NOCONF",
                 table: "SALIDA",
                 type: "nvarchar(max)",
-                nullable: true,
+                nullable: false,
                 defaultValue: "");
         }
 

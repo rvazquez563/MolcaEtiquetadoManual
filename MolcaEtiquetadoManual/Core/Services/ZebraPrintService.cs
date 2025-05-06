@@ -1,5 +1,4 @@
-﻿// Core/Services/ZebraPrintService.cs
-using System;
+﻿using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +8,6 @@ using MolcaEtiquetadoManual.Core.Models;
 using Microsoft.Extensions.Configuration;
 using System.ComponentModel;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Net.NetworkInformation;
 
 namespace MolcaEtiquetadoManual.Core.Services
@@ -21,6 +19,7 @@ namespace MolcaEtiquetadoManual.Core.Services
         private readonly string _formatName;
         private readonly string _formatUnit;
         private readonly ILogService _logService;
+        private readonly IConfiguration _configuration;
         private readonly BackgroundWorker _printWorker;
         private CancellationTokenSource _cancellationTokenSource;
 
@@ -33,6 +32,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             _formatName = printerSection["FormatName"] ?? "MOLCA.ZPL";
             _formatUnit = printerSection["FormatUnit"] ?? "E";
             _logService = logService;
+            _configuration = configuration;
 
             _printWorker = new BackgroundWorker();
             _printWorker.WorkerReportsProgress = true;
@@ -43,32 +43,92 @@ namespace MolcaEtiquetadoManual.Core.Services
 
             _logService.Information($"Inicializando servicio de impresión: IP={_printerIp}, Puerto={_printerPort}, Formato={_formatName}");
         }
+
         public event EventHandler<PrintProgressEventArgs> PrintProgress;
         public event EventHandler<PrintCompletedEventArgs> PrintCompleted;
-        //public bool ImprimirEtiqueta(OrdenProduccion orden, EtiquetaGenerada etiqueta, string codigoBarras)
-        //{
-        //    try
-        //    {
-        //        // Generar el ZPL con las variables para enviar a la impresora Zebra
-        //        string comandoZpl = GenerarComandoZPL(orden, etiqueta, codigoBarras);
 
-        //        // Guardar copia del comando ZPL para debugging
-        //        GuardarComandoZplParaDebug(comandoZpl);
+        public bool ImprimirEtiqueta(OrdenProduccion orden, EtiquetaGenerada etiqueta, string codigoBarras)
+        {
+            try
+            {
+                if (_printWorker.IsBusy)
+                {
+                    _logService.Warning("Ya hay una operación de impresión en curso");
+                    return false;
+                }
 
-        //        _logService.Information($"Enviando comando ZPL a impresora {_printerIp}:{_printerPort}");
+                // Comprobar si debemos simular éxito
+                bool simularExito = false;
 
-        //        // Enviar a la impresora
-        //        ImprimirEtiqueta(comandoZpl);//Wait();
+                if (simularExito)
+                {
+                    _logService.Information("Simulando impresión exitosa por configuración (SimulateSuccessfulPrint=true)");
+                    SimularProcesoDeImpresion();
+                    return true;
+                }
 
-        //        _logService.Information("Etiqueta enviada a la impresora correctamente");
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logService.Error(ex, "Error al imprimir etiqueta");
-        //        return false;
-        //    }
-        //}
+                // Generar el ZPL
+                string comandoZpl = GenerarComandoZPL(orden, etiqueta, codigoBarras);
+                GuardarComandoZplParaDebug(comandoZpl);
+
+                // Iniciar el token de cancelación
+                _cancellationTokenSource = new CancellationTokenSource();
+
+                // Crear objeto con los datos para el worker
+                var printData = new PrintJobData
+                {
+                    ZplCommand = comandoZpl,
+                    Orden = orden,
+                    Etiqueta = etiqueta,
+                    CodigoBarras = codigoBarras
+                };
+
+                // Notificar inicio
+                OnPrintProgress(0, "Iniciando proceso de impresión...");
+
+                // Iniciar el worker
+                _printWorker.RunWorkerAsync(printData);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al iniciar el proceso de impresión");
+                return false;
+            }
+        }
+
+        // Método privado nuevo para simular el proceso de impresión
+        private void SimularProcesoDeImpresion()
+        {
+            // Crear una tarea para simular el progreso en segundo plano
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Simulamos el progreso de impresión
+                    OnPrintProgress(10, "Conectando con la impresora...");
+                    await Task.Delay(500);
+
+                    OnPrintProgress(30, "Enviando datos de la etiqueta...");
+                    await Task.Delay(800);
+
+                    OnPrintProgress(60, "Procesando impresión...");
+                    await Task.Delay(700);
+
+                    OnPrintProgress(90, "Finalizando impresión...");
+                    await Task.Delay(500);
+
+                    // Completamos la impresión con éxito
+                    OnPrintCompleted(true, "Impresión completada exitosamente.");
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error en la simulación de impresión");
+                    OnPrintCompleted(false, $"Error en la impresión: {ex.Message}", ex);
+                }
+            });
+        }
 
         private void GuardarComandoZplParaDebug(string comandoZpl)
         {
@@ -131,46 +191,6 @@ namespace MolcaEtiquetadoManual.Core.Services
             return sb.ToString();
         }
 
-        public bool ImprimirEtiqueta(OrdenProduccion orden, EtiquetaGenerada etiqueta, string codigoBarras)
-        {
-            try
-            {
-                if (_printWorker.IsBusy)
-                {
-                    _logService.Warning("Ya hay una operación de impresión en curso");
-                    return false;
-                }
-
-                // Generar el ZPL
-                string comandoZpl = GenerarComandoZPL(orden, etiqueta, codigoBarras);
-                GuardarComandoZplParaDebug(comandoZpl);
-
-                // Iniciar el token de cancelación
-                _cancellationTokenSource = new CancellationTokenSource();
-
-                // Crear objeto con los datos para el worker
-                var printData = new PrintJobData
-                {
-                    ZplCommand = comandoZpl,
-                    Orden = orden,
-                    Etiqueta = etiqueta,
-                    CodigoBarras = codigoBarras
-                };
-
-                // Notificar inicio
-                OnPrintProgress(0, "Iniciando proceso de impresión...");
-
-                // Iniciar el worker
-                _printWorker.RunWorkerAsync(printData);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logService.Error(ex, "Error al iniciar el proceso de impresión");
-                return false;
-            }
-        }
         private void PrintWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             var worker = (BackgroundWorker)sender;
@@ -309,16 +329,18 @@ namespace MolcaEtiquetadoManual.Core.Services
             string message = e.UserState as string ?? "Procesando...";
             OnPrintProgress(e.ProgressPercentage, message);
         }
+
         // Métodos para levantar eventos
         protected virtual void OnPrintProgress(int percentage, string message)
         {
             PrintProgress?.Invoke(this, new PrintProgressEventArgs(percentage, message));
         }
 
-        protected virtual void OnPrintCompleted(bool success, string message, Exception error)
+        protected virtual void OnPrintCompleted(bool success, string message, Exception error = null)
         {
             PrintCompleted?.Invoke(this, new PrintCompletedEventArgs(success, message, error));
         }
+
         private void PrintWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             bool success = false;
@@ -356,6 +378,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             // Notificar a la UI
             OnPrintCompleted(success, message, error);
         }
+
         public void CancelarImpresion()
         {
             if (_printWorker.IsBusy)
@@ -365,6 +388,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                 _cancellationTokenSource?.Cancel();
             }
         }
+
         // Método para pruebas que simula la impresión sin enviar a una impresora real
         public bool SimularImpresion(OrdenProduccion orden, EtiquetaGenerada etiqueta, string codigoBarras)
         {
@@ -382,6 +406,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                 return false;
             }
         }
+
         private class PrintJobData
         {
             public string ZplCommand { get; set; }

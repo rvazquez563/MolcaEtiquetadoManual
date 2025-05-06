@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +17,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
     /// </summary>
     public partial class Step2Control : UserControl
     {
+        #region Variables Privadas
         private readonly IPrintService _printService;
         private readonly IEtiquetadoService _etiquetadoService;
         private readonly ITurnoService _turnoService;
@@ -26,17 +28,21 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private readonly Usuario _currentUser;
         private readonly IConfiguration _configuration;
         private Button btnCancelarImpresion;
-        public OrdenProduccion _currentOrden;
+        private OrdenProduccion _currentOrden;
         private EtiquetaGenerada _etiquetaActual;
         private string _generatedBarcode;
-        private bool impresioncanceladaxusuario=false;
+        private bool impresioncanceladaxusuario = false;
+        private int _originalCantidadPorPallet; // Para guardar la cantidad original
+        private int _cantidadModificada;
+        #endregion
 
-        // Eventos
+        #region Eventos
         public event EventHandler<EtiquetaGeneradaEventArgs> EtiquetaImpresa;
         public event EventHandler CancelarSolicitado;
         public event Action<string, ActivityLogItem.LogLevel> ActivityLog;
+        #endregion
 
-        public OrdenProduccion CurrentOrden => _currentOrden;
+        #region Constructor
         public Step2Control(
             IPrintService printService,
             IEtiquetadoService etiquetadoService,
@@ -59,19 +65,22 @@ namespace MolcaEtiquetadoManual.UI.Controls
             _julianDateService = julianDateService ?? throw new ArgumentNullException(nameof(julianDateService));
             _etiquetaPreviewService = etiquetaPreviewService ?? throw new ArgumentNullException(nameof(etiquetaPreviewService));
             _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
-            _configuration= configuration ?? throw new ArgumentNullException(nameof(configuration));    
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
             // Inicializar a vacío
             Limpiar();
         }
+        #endregion
 
+        #region Métodos Públicos
         /// <summary>
         /// Establece la orden de producción actual y actualiza la UI
         /// </summary>
         public void SetOrden(OrdenProduccion orden)
         {
             _currentOrden = orden ?? throw new ArgumentNullException(nameof(orden));
-
+            _originalCantidadPorPallet = orden.CantidadPorPallet; // Guardar la cantidad original
+            _cantidadModificada = orden.CantidadPorPallet;
             // Actualizar datos en la interfaz
             ActualizarDatos();
 
@@ -82,6 +91,48 @@ namespace MolcaEtiquetadoManual.UI.Controls
             txtError.Text = string.Empty;
         }
 
+        /// <summary>
+        /// Limpia todos los campos y reinicia el control
+        /// </summary>
+        public void Limpiar()
+        {
+            txtNumeroArticulo.Text = string.Empty;
+            txtDescripcion.Text = string.Empty;
+            txtCantidadPallet.Text = string.Empty;
+            txtProgramaProduccion.Text = string.Empty;
+            txtTurno.Text = string.Empty;
+            txtLote.Text = string.Empty;
+            txtFechaProduccion.Text = string.Empty;
+            txtFechaCaducidad.Text = string.Empty;
+            txtDUN14.Text = string.Empty;
+            txtError.Text = string.Empty;
+
+            btnImprimirEtiqueta.IsEnabled = false;
+            progressBar.Visibility = Visibility.Collapsed;
+
+            // Asegurar que el botón de cancelar esté visible para el próximo uso
+            btnCancelar.Visibility = Visibility.Visible;
+
+            // Ocultar panel de overlay si estaba visible
+            overlayPanel.Visibility = Visibility.Collapsed;
+
+            // Limpiar vista previa
+            if (etiquetaPreview != null)
+            {
+                etiquetaPreview.Limpiar();
+            }
+
+            // Limpiar variables internas
+            _currentOrden = null;
+            _etiquetaActual = null;
+            _generatedBarcode = null;
+            _originalCantidadPorPallet = 0; // Reiniciar la cantidad original guardada
+            _cantidadModificada = 0; // Reiniciar la cantidad modificada
+            impresioncanceladaxusuario = false; // Reiniciar la bandera de cancelación
+        }
+        #endregion
+
+        #region Métodos Privados
         private void ActualizarDatos()
         {
             if (_currentOrden == null)
@@ -93,7 +144,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
             // Actualizar controles de la interfaz
             txtNumeroArticulo.Text = _currentOrden.NumeroArticulo;
             txtDescripcion.Text = _currentOrden.Descripcion;
-            txtCantidadPallet.Text = _currentOrden.CantidadPorPallet.ToString();
+            txtCantidadPallet.Text = _cantidadModificada.ToString(); 
             txtProgramaProduccion.Text = _currentOrden.ProgramaProduccion;
             txtTurno.Text = turnoActual;
             txtLote.Text = $"{_currentOrden.ProgramaProduccion}{turnoActual}";
@@ -124,7 +175,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 LOTN = $"{_currentOrden.ProgramaProduccion}{turnoActual}",
                 EXPR = fechaProduccion.AddDays(_currentOrden.DiasCaducidad),
                 LITM = _currentOrden.NumeroArticulo,
-                SOQS = _currentOrden.CantidadPorPallet,
+                SOQS = _cantidadModificada, // Usa la cantidad actualizada
                 TDAY = DateTime.Now.ToString("HHmmss"),
                 SEC = 1, // Valor simulado para previsualización
                 SHFT = turnoActual
@@ -175,7 +226,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     Lote = etiquetaTemporal.LOTN,
                     FechaProduccion = fechaProduccion,
                     FechaVencimiento = etiquetaTemporal.EXPR,
-                    CantidadPorPallet = _currentOrden.CantidadPorPallet,
+                    CantidadPorPallet = _cantidadModificada, // Usa la cantidad actualizada
                     DUN14 = _currentOrden.DUN14,
                     CodigoBarras = codigoBarrasPreliminar,
                     ImagenCodigoBarras = imagenCodigo
@@ -192,26 +243,6 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 // Mostrar que hubo un error en la vista previa
                 etiquetaPreview.Limpiar();
             }
-        }
-
-        private void BtnImprimirEtiqueta_Click(object sender, RoutedEventArgs e)
-        {
-            var printerSettings = _configuration.GetSection("PrinterSettings");
-            if (bool.Parse(printerSettings["UseMockPrinter"]) == true)
-            {
-                ImprimirEtiqueta1();
-            }
-            else
-            {
-                ImprimirEtiqueta();
-            }
-        }
-
-        private void BtnCancelar_Click(object sender, RoutedEventArgs e)
-        {
-            // Notificar que se solicitó cancelar
-            ActivityLog?.Invoke("Operación cancelada por el usuario", ActivityLogItem.LogLevel.Info);
-            CancelarSolicitado?.Invoke(this, EventArgs.Empty);
         }
 
         private void ImprimirEtiqueta()
@@ -249,7 +280,6 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 overlayButtonPanel.Children.Add(btnCancelarImpresion);
             }
             btnCancelarImpresion.Visibility = Visibility.Visible;
-          
 
             try
             {
@@ -320,22 +350,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 ResetearInterfazImpresion();
             }
         }
-        public void ResetearEstadoImpresion()
-        {
-            progressBar.Visibility = Visibility.Collapsed;
-            btnImprimirEtiqueta.IsEnabled = true; // Habilitar el botón IMPRIMIR
-            btnCancelar.Visibility = Visibility.Visible; // Mostrar el botón CANCELAR
-            overlayPanel.Visibility = Visibility.Collapsed; // Ocultar el overlay
 
-            // Ocultar el botón CANCELAR IMPRESIÓN
-            if (btnCancelarImpresion != null)
-            {
-                btnCancelarImpresion.Visibility = Visibility.Collapsed;
-            }
-
-            // Resetear variables de impresión si es necesario
-            impresioncanceladaxusuario = false;
-        }
         private void ImprimirEtiqueta1()
         {
             if (_currentOrden == null)
@@ -380,8 +395,8 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     _generatedBarcode = $"{_currentOrden.NumeroArticulo}-{DateTime.Now:yyMMddHHmmss}-{_etiquetaActual.LOTN}";
                 }
 
-                // Registrar actividad
-                ActivityLog?.Invoke("Enviando etiqueta a la impresora...", ActivityLogItem.LogLevel.Info);
+                // Registrar actividad con la cantidad actualizada
+                ActivityLog?.Invoke($"Enviando etiqueta a la impresora con {_currentOrden.CantidadPorPallet} unidades por pallet...", ActivityLogItem.LogLevel.Info);
 
                 // Guardar la etiqueta en la base de datos ANTES de imprimir (con Confirmada = false)
                 try
@@ -421,6 +436,14 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
                 if (impresionExitosa)
                 {
+                    // Si hubo un cambio en la cantidad por pallet respecto al original, registrarlo
+                    if (_originalCantidadPorPallet != _currentOrden.CantidadPorPallet)
+                    {
+                        string mensaje = $"Se modificó la cantidad por pallet de {_originalCantidadPorPallet} a {_currentOrden.CantidadPorPallet}";
+                        _logService.Information(mensaje);
+                        ActivityLog?.Invoke(mensaje, ActivityLogItem.LogLevel.Info);
+                    }
+
                     ActivityLog?.Invoke("Etiqueta enviada a la impresora. Proceda a verificar.", ActivityLogItem.LogLevel.Info);
 
                     // Notificar que se imprimió la etiqueta
@@ -445,97 +468,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 btnImprimirEtiqueta.IsEnabled = true;
             }
         }
-        // Manejadores de eventos para la impresión en segundo plano
-        private void PrintService_PrintProgress(object sender, ZebraPrintService.PrintProgressEventArgs e)
-        {
-            // Asegurarse de que se ejecuta en el hilo de UI
-            Dispatcher.Invoke(() =>
-            {
-                progressBar.Value = e.Percentage;
-                txtError.Text = e.Message;
-                //txtError.Foreground = Brushes.Black; // Color normal para mensajes de progreso
 
-                // Actualizar también el texto en el overlay
-                overlayStatusText.Text = e.Message;
-
-                // Informar a la interfaz de actividad
-                ActivityLog?.Invoke(e.Message, ActivityLogItem.LogLevel.Info);
-            });
-        }
-        private void PrintService_PrintCompleted(object sender, ZebraPrintService.PrintCompletedEventArgs e)
-        {
-            // Desuscribirse de los eventos
-            if (sender is ZebraPrintService zebraPrintService)
-            {
-                zebraPrintService.PrintProgress -= PrintService_PrintProgress;
-                zebraPrintService.PrintCompleted -= PrintService_PrintCompleted;
-            }
-
-            // Asegurarse de que se ejecuta en el hilo de UI
-            Dispatcher.Invoke(() =>
-            {
-                if (e.Success)
-                {
-                    // Exitoso
-                    txtError.Text = e.Message;
-                    //txtError.Foreground = Brushes.Green;
-                    ActivityLog?.Invoke("Etiqueta enviada a la impresora. Proceda a verificar.", ActivityLogItem.LogLevel.Info);
-
-                    // Notificar que se imprimió la etiqueta
-                    EtiquetaImpresa?.Invoke(this, new EtiquetaGeneradaEventArgs(_etiquetaActual, _generatedBarcode));
-                }
-                else
-                {
-                    // Error
-                    MostrarError(e.Message);
-                    ActivityLog?.Invoke(e.Message, ActivityLogItem.LogLevel.Error);
-                    ResetearInterfazImpresion();
-                    if (impresioncanceladaxusuario)
-                    {
-                        _etiquetaActual.MotivoNoConfirmacion = "La impresion fue cancelada por el usuario";
-                        string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
-                    }
-                    else
-                    {
-                        _etiquetaActual.MotivoNoConfirmacion = "La impresion dio error: " + e.Message;
-                        string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
-                    }
-                    
-                }
-            });
-        }
-
-        private void BtnCancelarImpresion_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_printService is ZebraPrintService zebraPrintService)
-                {
-                    impresioncanceladaxusuario = true;
-                    zebraPrintService.CancelarImpresion();
-                    ActivityLog?.Invoke("Cancelando impresión...", ActivityLogItem.LogLevel.Warning);
-                    
-                }
-
-            }
-            catch (Exception ex)
-            {
-                _logService.Error(ex, "Error al cancelar impresión");
-            }
-        }
-
-        private void ResetearInterfazImpresion()
-        {
-            progressBar.Visibility = Visibility.Collapsed;
-            btnImprimirEtiqueta.IsEnabled = true;
-            btnCancelar.Visibility = Visibility.Visible;
-            overlayPanel.Visibility = Visibility.Collapsed;
-
-            if (btnCancelarImpresion != null)
-            {
-                btnCancelarImpresion.Visibility = Visibility.Collapsed;
-            }
-        }
         private EtiquetaGenerada CrearEtiquetaGenerada(OrdenProduccion orden, string turnoActual,
             DateTime fechaProduccion, string numeroTransaccion)
         {
@@ -546,7 +479,6 @@ namespace MolcaEtiquetadoManual.UI.Controls
             int lineaId = 1;
             try
             {
-
                 var lineNumber = _configuration.GetValue<string>("AppSettings:LineNumber") ?? "1";
                 lineaId = int.Parse(lineNumber);
             }
@@ -589,7 +521,6 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     _logService.Error(ex, "Error al obtener secuencial de pallet, usando valor por defecto");
                     numeroPallet = 1; // Valor por defecto para pruebas
                 }
-
             }
             catch (Exception ex)
             {
@@ -639,8 +570,12 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 fechaVencimientoJuliana = $"1{fechaVencimiento.ToString("yyDDD")}";
             }
 
-            // Asignar a la etiqueta (antes guardábamos la fecha DateTime)
-            //_etiquetaActual.URDT = fechaVencimientoJuliana;
+            // Si la cantidad por pallet fue modificada, registrarlo en el log
+            if (_originalCantidadPorPallet != _cantidadModificada)
+            {
+                _logService.Information("Creando etiqueta con cantidad por pallet modificada de {0} a {1}",
+                    _originalCantidadPorPallet, _cantidadModificada);
+            }
 
             return new EtiquetaGenerada
             {
@@ -650,7 +585,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 EDLN = numeroSecuencial,
                 DOCO = orden.ProgramaProduccion,
                 LITM = orden.NumeroArticulo,
-                SOQS = orden.CantidadPorPallet,
+                SOQS = _cantidadModificada, // Usa la cantidad actualizada por el usuario
                 UOM1 = orden.UnidadMedida ?? "UN",
                 LOTN = $"{orden.ProgramaProduccion}{turnoActual}",
                 EXPR = fechaProduccion.AddDays(orden.DiasCaducidad),
@@ -662,7 +597,9 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 URRF = orden.DUN14,
                 FechaCreacion = DateTime.Now,
                 Confirmada = false,
-                LineaId= Convert.ToInt32(_configuration.GetValue<string>("AppSettings:LineNumber") ?? "0")
+                LineaId = Convert.ToInt32(_configuration.GetValue<string>("AppSettings:LineNumber") ?? "0"),
+                MotivoNoConfirmacion = _originalCantidadPorPallet != orden.CantidadPorPallet ?
+                    $"Cantidad modificada manualmente de {_originalCantidadPorPallet} a {orden.CantidadPorPallet}" : ""
             };
         }
 
@@ -672,36 +609,177 @@ namespace MolcaEtiquetadoManual.UI.Controls
             progressBar.Visibility = Visibility.Collapsed;
         }
 
-        /// <summary>
-        /// Limpia todos los campos y reinicia el control
-        /// </summary>
-        public void Limpiar()
+        private void ResetearInterfazImpresion()
         {
-            txtNumeroArticulo.Text = string.Empty;
-            txtDescripcion.Text = string.Empty;
-            txtCantidadPallet.Text = string.Empty;
-            txtProgramaProduccion.Text = string.Empty;
-            txtTurno.Text = string.Empty;
-            txtLote.Text = string.Empty;
-            txtFechaProduccion.Text = string.Empty;
-            txtFechaCaducidad.Text = string.Empty;
-            txtDUN14.Text = string.Empty;
-            txtError.Text = string.Empty;
-
-            btnImprimirEtiqueta.IsEnabled = false;
             progressBar.Visibility = Visibility.Collapsed;
+            btnImprimirEtiqueta.IsEnabled = true;
+            btnCancelar.Visibility = Visibility.Visible;
+            overlayPanel.Visibility = Visibility.Collapsed;
 
-            // Limpiar vista previa
-            if (etiquetaPreview != null)
+            if (btnCancelarImpresion != null)
             {
-                etiquetaPreview.Limpiar();
+                btnCancelarImpresion.Visibility = Visibility.Collapsed;
+            }
+        }
+        #endregion
+
+        #region Manejadores de Eventos
+        private void BtnImprimirEtiqueta_Click(object sender, RoutedEventArgs e)
+        {
+            var printerSettings = _configuration.GetSection("PrinterSettings");
+            if (bool.Parse(printerSettings["UseMockPrinter"]) == true)
+            {
+                ImprimirEtiqueta1();
+            }
+            else
+            {
+                ImprimirEtiqueta();
+            }
+        }
+
+        private void BtnCancelar_Click(object sender, RoutedEventArgs e)
+        {
+            // Si se modificó la cantidad, preguntar al usuario si desea descartar los cambios
+            if (_currentOrden != null && _originalCantidadPorPallet != _currentOrden.CantidadPorPallet)
+            {
+                var result = MessageBox.Show(
+                    "Ha modificado la cantidad por pallet. ¿Desea descartar los cambios?",
+                    "Confirmación",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.No)
+                {
+                    return;
+                }
+
+                // Restaurar el valor original
+                _cantidadModificada = _originalCantidadPorPallet;
             }
 
-            // Limpiar variables internas
-            _currentOrden = null;
-            _etiquetaActual = null;
-            _generatedBarcode = null;
+            // Notificar que se solicitó cancelar
+            ActivityLog?.Invoke("Operación cancelada por el usuario", ActivityLogItem.LogLevel.Info);
+            CancelarSolicitado?.Invoke(this, EventArgs.Empty);
         }
+
+        private void BtnCancelarImpresion_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_printService is ZebraPrintService zebraPrintService)
+                {
+                    impresioncanceladaxusuario = true;
+                    zebraPrintService.CancelarImpresion();
+                    ActivityLog?.Invoke("Cancelando impresión...", ActivityLogItem.LogLevel.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al cancelar impresión");
+            }
+        }
+
+        // Manejadores de eventos para la impresión en segundo plano
+        private void PrintService_PrintProgress(object sender, ZebraPrintService.PrintProgressEventArgs e)
+        {
+            // Asegurarse de que se ejecuta en el hilo de UI
+            Dispatcher.Invoke(() =>
+            {
+                progressBar.Value = e.Percentage;
+                txtError.Text = e.Message;
+
+                // Actualizar también el texto en el overlay
+                overlayStatusText.Text = e.Message;
+
+                // Informar a la interfaz de actividad
+                ActivityLog?.Invoke(e.Message, ActivityLogItem.LogLevel.Info);
+            });
+        }
+
+        private void PrintService_PrintCompleted(object sender, ZebraPrintService.PrintCompletedEventArgs e)
+        {
+            // Desuscribirse de los eventos
+            if (sender is ZebraPrintService zebraPrintService)
+            {
+                zebraPrintService.PrintProgress -= PrintService_PrintProgress;
+                zebraPrintService.PrintCompleted -= PrintService_PrintCompleted;
+            }
+
+            // Asegurarse de que se ejecuta en el hilo de UI
+            Dispatcher.Invoke(() =>
+            {
+                if (e.Success)
+                {
+                    // Exitoso
+                    txtError.Text = e.Message;
+                    ActivityLog?.Invoke("Etiqueta enviada a la impresora. Proceda a verificar.", ActivityLogItem.LogLevel.Info);
+
+                    // Si hubo un cambio en la cantidad por pallet respecto al original, registrarlo
+                    if (_originalCantidadPorPallet != _currentOrden.CantidadPorPallet)
+                    {
+                        string mensaje = $"Se utilizó una cantidad modificada: {_currentOrden.CantidadPorPallet} unidades por pallet (original: {_originalCantidadPorPallet})";
+                        _logService.Information(mensaje);
+                        ActivityLog?.Invoke(mensaje, ActivityLogItem.LogLevel.Info);
+                    }
+
+                    // Notificar que se imprimió la etiqueta
+                    EtiquetaImpresa?.Invoke(this, new EtiquetaGeneradaEventArgs(_etiquetaActual, _generatedBarcode));
+                }
+                else
+                {
+                    // Error
+                    MostrarError(e.Message);
+                    ActivityLog?.Invoke(e.Message, ActivityLogItem.LogLevel.Error);
+                    ResetearInterfazImpresion();
+                    if (impresioncanceladaxusuario)
+                    {
+                        _etiquetaActual.MotivoNoConfirmacion = "La impresion fue cancelada por el usuario";
+                        string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
+                    }
+                    else
+                    {
+                        _etiquetaActual.MotivoNoConfirmacion = "La impresion dio error: " + e.Message;
+                        string resultado = _etiquetadoService.GuardarEtiqueta(_etiquetaActual);
+                    }
+                }
+            });
+        }
+
+        // Nuevos métodos para el manejo de la edición de cantidad por pallet
+        private void TxtCantidadPallet_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Solo permitir valores numéricos
+            e.Handled = !int.TryParse(e.Text, out _);
+        }
+
+        private void TxtCantidadPallet_LostFocus(object sender, RoutedEventArgs e)
+        {
+            // Validar y actualizar la cantidad cuando el campo pierde el foco
+            if (int.TryParse(txtCantidadPallet.Text, out int cantidad) && cantidad > 0)
+            {
+                // Si la cantidad ha cambiado respecto a la original
+                if (_cantidadModificada != cantidad)
+                {
+                    // Actualizar la cantidad modificada (NO la orden original)
+                    _cantidadModificada = cantidad;
+
+                    // Registrar el cambio
+                    _logService.Information("Cantidad por pallet modificada a: {Cantidad}", cantidad);
+                    ActivityLog?.Invoke($"Cantidad por pallet modificada a: {cantidad}", ActivityLogItem.LogLevel.Info);
+
+                    // Actualizar la vista previa
+                    var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+                    GenerarVistaPreliminar(turnoActual, fechaProduccion);
+                }
+            }
+            else
+            {
+                // Si el valor no es válido, restaurar el valor modificado actual
+                txtCantidadPallet.Text = _cantidadModificada.ToString();
+                ActivityLog?.Invoke("Cantidad por pallet inválida, se restauró el valor actual", ActivityLogItem.LogLevel.Warning);
+            }
+        }
+        #endregion
     }
 
     /// <summary>
