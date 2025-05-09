@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+﻿
 <UserControl x:Class="MolcaEtiquetadoManual.UI.Controls.Step2Control"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -15,9 +15,6 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
-        <!-- Título del paso -->
-        
 
         <!-- Contenido principal -->
         <Grid Grid.Row="1">
@@ -38,6 +35,8 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <!-- Fila adicional para tipo de producto -->
                 </Grid.RowDefinitions>
 
                 <!-- Fila 1 -->
@@ -74,23 +73,22 @@
                 <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
                     <TextBlock Text="Cantidad por Pallet" FontWeight="Medium"/>
                     <TextBox x:Name="txtCantidadPallet" 
-                          Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                          PreviewTextInput="TxtCantidadPallet_PreviewTextInput"
-                          LostFocus="TxtCantidadPallet_LostFocus"/>
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             PreviewTextInput="TxtCantidadPallet_PreviewTextInput"
+                             LostFocus="TxtCantidadPallet_LostFocus"/>
                 </StackPanel>
 
                 <!-- Fila 4 -->
                 <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,10,10">
-                    <TextBlock Text="Turno / Lote" FontWeight="Medium"/>
+                    <TextBlock Text="Fecha Elaboración / Lote" FontWeight="Medium"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBox x:Name="txtTurno" 
+                        <TextBox x:Name="txtFechaElaboracion" 
                                  Grid.Column="0"
-                                 Width="40"
                                  IsReadOnly="True"
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
@@ -98,6 +96,7 @@
                                  Grid.Column="1"
                                  Margin="5,0,0,0"
                                  IsReadOnly="True"
+                                 Width="90"
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                     </Grid>
                 </StackPanel>
@@ -122,6 +121,34 @@
                                  materialDesign:HintAssist.Hint="Caducidad"
                                  IsReadOnly="True"
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Nueva Fila 5 - Tipo de Producto -->
+                <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,10">
+                    <TextBlock Text="Tipo de Producto" FontWeight="Medium"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox x:Name="cmbTipoProducto" 
+                             Grid.Column="0"
+                             SelectionChanged="CmbTipoProducto_SelectionChanged"
+                             Style="{StaticResource MaterialDesignOutlinedComboBox}">   
+                            <ComboBoxItem Content="0 - Producto OK" Tag="0" IsSelected="True"/>
+                            <ComboBoxItem Content="2 - Reproceso" Tag="2"/>
+                            <ComboBoxItem Content="5 - Reprocesado" Tag="5"/>
+                            <ComboBoxItem Content="8 - Producto W (fuera de especificación)" Tag="8"/>
+                            <ComboBoxItem Content="9 - Producto B (con dispersión)" Tag="9"/>
+                        </ComboBox>
+
+                        <TextBlock x:Name="txtTipoProductoDescripcion" 
+                                  Grid.Column="1"
+                                  Text="Producto OK"
+                                  Margin="10,0,0,0"
+                                  VerticalAlignment="Center"/>
                     </Grid>
                 </StackPanel>
             </Grid>
@@ -157,14 +184,13 @@
                        TextWrapping="Wrap"/>
 
             <ProgressBar x:Name="progressBar"
-             Style="{StaticResource MaterialDesignLinearProgressBar}"
-             IsIndeterminate="False"
-             Height="4"
-             Margin="0,0,0,15"
-             Visibility="Collapsed"/>
+                         Style="{StaticResource MaterialDesignLinearProgressBar}"
+                         IsIndeterminate="False"
+                         Height="4"
+                         Margin="0,0,0,15"
+                         Visibility="Collapsed"/>
 
             <!-- Botones -->
-            <!-- Reemplazar los botones existentes con esto -->
             <Grid x:Name="panelBotones">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -174,62 +200,62 @@
 
                 <!-- Instrucciones adicionales -->
                 <TextBlock Grid.Column="0" 
-               TextWrapping="Wrap" 
-               VerticalAlignment="Center">
-        Verifique los datos antes de imprimir. La etiqueta se guardará automáticamente.
+                           TextWrapping="Wrap" 
+                           VerticalAlignment="Center">
+                    Verifique los datos antes de imprimir. La etiqueta se guardará automáticamente.
                 </TextBlock>
 
                 <!-- Botón Cancelar -->
                 <Button Grid.Column="1"
-            Content="CANCELAR"
-            x:Name="btnCancelar"
-            Click="BtnCancelar_Click"
-            Style="{StaticResource MaterialDesignOutlinedButton}"
-            Margin="10,0"/>
+                        Content="CANCELAR"
+                        x:Name="btnCancelar"
+                        Click="BtnCancelar_Click"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        Margin="10,0"/>
 
                 <!-- Botón Imprimir -->
                 <Button Grid.Column="2"
-            Content="IMPRIMIR ETIQUETA"
-            x:Name="btnImprimirEtiqueta"
-            Click="BtnImprimirEtiqueta_Click"
-            Style="{StaticResource MaterialDesignRaisedAccentButton}"
-            IsEnabled="False"/>
+                        Content="IMPRIMIR ETIQUETA"
+                        x:Name="btnImprimirEtiqueta"
+                        Click="BtnImprimirEtiqueta_Click"
+                        Style="{StaticResource MaterialDesignRaisedAccentButton}"
+                        IsEnabled="False"/>
             </Grid>
         </StackPanel>
-        <!-- Agrega esto justo después del cierre de la Grid principal pero antes del cierre del UserControl -->
+
+        <!-- Panel de overlay para impresión en progreso -->
         <Grid x:Name="overlayPanel" 
-      Visibility="Collapsed"
-      Panel.ZIndex="100"
-      Background="#80000000"
-      HorizontalAlignment="Stretch"
-      VerticalAlignment="Stretch">
+              Visibility="Collapsed"
+              Panel.ZIndex="100"
+              Background="#80000000"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
             <StackPanel x:Name="overlayButtonPanel"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center">
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
                 <TextBlock Text="Impresión en progreso" 
-                  FontSize="20"
-                  Foreground="White"
-                  FontWeight="Bold"
-                  TextAlignment="Center"
-                  Margin="0,0,0,15"/>
+                           FontSize="20"
+                           Foreground="White"
+                           FontWeight="Bold"
+                           TextAlignment="Center"
+                           Margin="0,0,0,15"/>
 
                 <ProgressBar x:Name="overlayProgressBar"
-                     Height="10"
-                     Width="250"
-                     Margin="0,0,0,20"
-                     Value="{Binding ElementName=progressBar, Path=Value}"/>
+                             Height="10"
+                             Width="250"
+                             Margin="0,0,0,20"
+                             Value="{Binding ElementName=progressBar, Path=Value}"/>
 
                 <TextBlock x:Name="overlayStatusText"
-                   Text="{Binding ElementName=txtError, Path=Text}"
-                   Foreground="White"
-                   TextAlignment="Center"
-                   Margin="0,0,0,20"
-                   TextWrapping="Wrap"
-                   Width="300"/>
+                           Text="{Binding ElementName=txtError, Path=Text}"
+                           Foreground="White"
+                           TextAlignment="Center"
+                           Margin="0,0,0,20"
+                           TextWrapping="Wrap"
+                           Width="300"/>
 
                 <!-- El botón de cancelar impresión se agregará aquí programáticamente -->
             </StackPanel>
         </Grid>
     </Grid>
-    
 </UserControl>

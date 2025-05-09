@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Microsoft.Extensions.Configuration;
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Models;
@@ -32,8 +30,9 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private EtiquetaGenerada _etiquetaActual;
         private string _generatedBarcode;
         private bool impresioncanceladaxusuario = false;
-        private int _originalCantidadPorPallet; // Para guardar la cantidad original
+        private int _originalCantidadPorPallet;
         private int _cantidadModificada;
+        private string _tipoProductoSeleccionado = "0"; // Valor predeterminado: Producto OK
         #endregion
 
         #region Eventos
@@ -69,6 +68,12 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
             // Inicializar a vacío
             Limpiar();
+
+            // Seleccionar el tipo de producto predeterminado
+            if (cmbTipoProducto.Items.Count > 0)
+            {
+                cmbTipoProducto.SelectedIndex = 0;
+            }
         }
         #endregion
 
@@ -79,8 +84,9 @@ namespace MolcaEtiquetadoManual.UI.Controls
         public void SetOrden(OrdenProduccion orden)
         {
             _currentOrden = orden ?? throw new ArgumentNullException(nameof(orden));
-            _originalCantidadPorPallet = orden.CantidadPorPallet; // Guardar la cantidad original
+            _originalCantidadPorPallet = orden.CantidadPorPallet;
             _cantidadModificada = orden.CantidadPorPallet;
+
             // Actualizar datos en la interfaz
             ActualizarDatos();
 
@@ -100,12 +106,16 @@ namespace MolcaEtiquetadoManual.UI.Controls
             txtDescripcion.Text = string.Empty;
             txtCantidadPallet.Text = string.Empty;
             txtProgramaProduccion.Text = string.Empty;
-            txtTurno.Text = string.Empty;
+            txtFechaElaboracion.Text = string.Empty;
             txtLote.Text = string.Empty;
             txtFechaProduccion.Text = string.Empty;
             txtFechaCaducidad.Text = string.Empty;
             txtDUN14.Text = string.Empty;
             txtError.Text = string.Empty;
+
+            // Resetear tipo de producto al valor predeterminado
+            cmbTipoProducto.SelectedIndex = 0;
+            _tipoProductoSeleccionado = "0";
 
             btnImprimirEtiqueta.IsEnabled = false;
             progressBar.Visibility = Visibility.Collapsed;
@@ -126,9 +136,9 @@ namespace MolcaEtiquetadoManual.UI.Controls
             _currentOrden = null;
             _etiquetaActual = null;
             _generatedBarcode = null;
-            _originalCantidadPorPallet = 0; // Reiniciar la cantidad original guardada
-            _cantidadModificada = 0; // Reiniciar la cantidad modificada
-            impresioncanceladaxusuario = false; // Reiniciar la bandera de cancelación
+            _originalCantidadPorPallet = 0;
+            _cantidadModificada = 0;
+            impresioncanceladaxusuario = false;
         }
         #endregion
 
@@ -144,10 +154,17 @@ namespace MolcaEtiquetadoManual.UI.Controls
             // Actualizar controles de la interfaz
             txtNumeroArticulo.Text = _currentOrden.NumeroArticulo;
             txtDescripcion.Text = _currentOrden.Descripcion;
-            txtCantidadPallet.Text = _cantidadModificada.ToString(); 
+            txtCantidadPallet.Text = _cantidadModificada.ToString();
             txtProgramaProduccion.Text = _currentOrden.ProgramaProduccion;
-            txtTurno.Text = turnoActual;
-            txtLote.Text = $"{_currentOrden.ProgramaProduccion}{turnoActual}";
+
+            // Formato de fecha para el lote: DDMMYY
+            string fechaFormateada = fechaProduccion.ToString("ddMMyy");
+            txtFechaElaboracion.Text = fechaFormateada;
+
+            // Crear el lote con el nuevo formato: FECHAELABORACION + TIPO_PRODUCTO
+            string lote = $"{fechaFormateada}{_tipoProductoSeleccionado}";
+            txtLote.Text = lote;
+
             txtFechaProduccion.Text = fechaProduccion.ToString("dd/MM/yyyy");
             txtFechaCaducidad.Text = fechaProduccion.AddDays(_currentOrden.DiasCaducidad).ToString("dd/MM/yyyy");
             txtDUN14.Text = _currentOrden.DUN14;
@@ -169,13 +186,17 @@ namespace MolcaEtiquetadoManual.UI.Controls
             if (_currentOrden == null)
                 return;
 
-            // Crear etiqueta temporal para vista previa
+            // Formato de fecha para el lote: DDMMYY
+            string fechaFormateada = fechaProduccion.ToString("ddMMyy");
+
+            // Crear etiqueta temporal para vista previa con el nuevo formato de lote
             var etiquetaTemporal = new EtiquetaGenerada
             {
-                LOTN = $"{_currentOrden.ProgramaProduccion}{turnoActual}",
+                // El lote ahora es la fecha de elaboración + dígito tipo de producto
+                LOTN = $"{fechaFormateada}{_tipoProductoSeleccionado}",
                 EXPR = fechaProduccion.AddDays(_currentOrden.DiasCaducidad),
                 LITM = _currentOrden.NumeroArticulo,
-                SOQS = _cantidadModificada, // Usa la cantidad actualizada
+                SOQS = _cantidadModificada,
                 TDAY = DateTime.Now.ToString("HHmmss"),
                 SEC = 1, // Valor simulado para previsualización
                 SHFT = turnoActual
@@ -207,16 +228,12 @@ namespace MolcaEtiquetadoManual.UI.Controls
             try
             {
                 // Generar imagen de código de barras si tenemos servicio
-                BitmapSource imagenCodigo = null;
-                if (_barcodeService != null)
-                {
-                    imagenCodigo = _barcodeService.GenerarImagenCodigoBarras(
-                        codigoBarrasPreliminar,
-                        ZXing.BarcodeFormat.CODE_128,
-                        280,  // Ancho
-                        70    // Alto
-                    );
-                }
+                var imagenCodigo = _barcodeService?.GenerarImagenCodigoBarras(
+                    codigoBarrasPreliminar,
+                    ZXing.BarcodeFormat.CODE_128,
+                    280,  // Ancho
+                    70    // Alto
+                );
 
                 // Crear objeto de vista previa
                 var vistaPrevia = new EtiquetaPreview
@@ -226,7 +243,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     Lote = etiquetaTemporal.LOTN,
                     FechaProduccion = fechaProduccion,
                     FechaVencimiento = etiquetaTemporal.EXPR,
-                    CantidadPorPallet = _cantidadModificada, // Usa la cantidad actualizada
+                    CantidadPorPallet = _cantidadModificada,
                     DUN14 = _currentOrden.DUN14,
                     CodigoBarras = codigoBarrasPreliminar,
                     ImagenCodigoBarras = imagenCodigo
@@ -287,7 +304,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
                 string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
 
-                // Crear la entidad de etiqueta
+                // Crear la entidad de etiqueta con el nuevo formato de lote
                 _etiquetaActual = CrearEtiquetaGenerada(_currentOrden, turnoActual, fechaProduccion, numeroTransaccion);
 
                 // Intentar generar el código de barras
@@ -370,7 +387,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
                 string numeroTransaccion = _turnoService.ObtenerNumeroTransaccion(fechaProduccion);
 
-                // Crear la entidad de etiqueta
+                // Crear la entidad de etiqueta con el nuevo formato de lote
                 _etiquetaActual = CrearEtiquetaGenerada(_currentOrden, turnoActual, fechaProduccion, numeroTransaccion);
 
                 // Intentar generar el código de barras
@@ -395,8 +412,8 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     _generatedBarcode = $"{_currentOrden.NumeroArticulo}-{DateTime.Now:yyMMddHHmmss}-{_etiquetaActual.LOTN}";
                 }
 
-                // Registrar actividad con la cantidad actualizada
-                ActivityLog?.Invoke($"Enviando etiqueta a la impresora con {_currentOrden.CantidadPorPallet} unidades por pallet...", ActivityLogItem.LogLevel.Info);
+                // Registrar actividad con la cantidad actualizada y tipo de producto
+                ActivityLog?.Invoke($"Enviando etiqueta a la impresora con {_cantidadModificada} unidades por pallet y tipo de producto: {_tipoProductoSeleccionado}...", ActivityLogItem.LogLevel.Info);
 
                 // Guardar la etiqueta en la base de datos ANTES de imprimir (con Confirmada = false)
                 try
@@ -437,12 +454,17 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 if (impresionExitosa)
                 {
                     // Si hubo un cambio en la cantidad por pallet respecto al original, registrarlo
-                    if (_originalCantidadPorPallet != _currentOrden.CantidadPorPallet)
+                    if (_originalCantidadPorPallet != _cantidadModificada)
                     {
-                        string mensaje = $"Se modificó la cantidad por pallet de {_originalCantidadPorPallet} a {_currentOrden.CantidadPorPallet}";
+                        string mensaje = $"Se modificó la cantidad por pallet de {_originalCantidadPorPallet} a {_cantidadModificada}";
                         _logService.Information(mensaje);
                         ActivityLog?.Invoke(mensaje, ActivityLogItem.LogLevel.Info);
                     }
+
+                    // Registrar el tipo de producto usado
+                    string tipoProductoMensaje = $"Tipo de producto seleccionado: {GetTipoProductoDescripcion(_tipoProductoSeleccionado)}";
+                    _logService.Information(tipoProductoMensaje);
+                    ActivityLog?.Invoke(tipoProductoMensaje, ActivityLogItem.LogLevel.Info);
 
                     ActivityLog?.Invoke("Etiqueta enviada a la impresora. Proceda a verificar.", ActivityLogItem.LogLevel.Info);
 
@@ -477,6 +499,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
             int numeroPallet = 1;
             string fechaJuliana = "";
             int lineaId = 1;
+
             try
             {
                 var lineNumber = _configuration.GetValue<string>("AppSettings:LineNumber") ?? "1";
@@ -577,6 +600,16 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     _originalCantidadPorPallet, _cantidadModificada);
             }
 
+            // Formato de fecha para el lote: DDMMYY
+            string fechaFormateada = fechaProduccion.ToString("ddMMyy");
+
+            // Crear el lote con el nuevo formato: FECHAELABORACION + TIPO_PRODUCTO
+            string lote = $"{fechaFormateada}{_tipoProductoSeleccionado}";
+
+            // Registrar tipo de producto en el log
+            _logService.Information("Tipo de producto seleccionado: {0} - {1}",
+                _tipoProductoSeleccionado, GetTipoProductoDescripcion(_tipoProductoSeleccionado));
+
             return new EtiquetaGenerada
             {
                 EDUS = usuario,
@@ -585,9 +618,10 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 EDLN = numeroSecuencial,
                 DOCO = orden.ProgramaProduccion,
                 LITM = orden.NumeroArticulo,
-                SOQS = _cantidadModificada, // Usa la cantidad actualizada por el usuario
+                SOQS = _cantidadModificada,
                 UOM1 = orden.UnidadMedida ?? "UN",
-                LOTN = $"{orden.ProgramaProduccion}{turnoActual}",
+                // Nuevo formato de lote: FECHAELABORACION + TIPO_PRODUCTO
+                LOTN = lote,
                 EXPR = fechaProduccion.AddDays(orden.DiasCaducidad),
                 TDAY = horaJuliana,
                 SHFT = turnoActual,
@@ -598,11 +632,24 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 FechaCreacion = DateTime.Now,
                 Confirmada = false,
                 LineaId = Convert.ToInt32(_configuration.GetValue<string>("AppSettings:LineNumber") ?? "0"),
-                MotivoNoConfirmacion = _originalCantidadPorPallet != orden.CantidadPorPallet ?
-                    $"Cantidad modificada manualmente de {_originalCantidadPorPallet} a {orden.CantidadPorPallet}" : ""
+                MotivoNoConfirmacion = _originalCantidadPorPallet != _cantidadModificada ?
+                    $"Cantidad modificada manualmente de {_originalCantidadPorPallet} a {_cantidadModificada}" : ""
             };
         }
 
+        // Obtener la descripción del tipo de producto seleccionado
+        private string GetTipoProductoDescripcion(string tipoProducto)
+        {
+            switch (tipoProducto)
+            {
+                case "0": return "Producto OK";
+                case "2": return "Reproceso (Producto sin terminar algún proceso)";
+                case "5": return "Reprocesado";
+                case "8": return "Producto W (Producto fuera de especificación)";
+                case "9": return "Producto B (Producto con dispersión)";
+                default: return "Tipo desconocido";
+            }
+        }
         private void MostrarError(string mensaje)
         {
             txtError.Text = mensaje;
@@ -640,7 +687,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private void BtnCancelar_Click(object sender, RoutedEventArgs e)
         {
             // Si se modificó la cantidad, preguntar al usuario si desea descartar los cambios
-            if (_currentOrden != null && _originalCantidadPorPallet != _currentOrden.CantidadPorPallet)
+            if (_currentOrden != null && (_originalCantidadPorPallet != _cantidadModificada))
             {
                 var result = MessageBox.Show(
                     "Ha modificado la cantidad por pallet. ¿Desea descartar los cambios?",
@@ -715,12 +762,17 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     ActivityLog?.Invoke("Etiqueta enviada a la impresora. Proceda a verificar.", ActivityLogItem.LogLevel.Info);
 
                     // Si hubo un cambio en la cantidad por pallet respecto al original, registrarlo
-                    if (_originalCantidadPorPallet != _currentOrden.CantidadPorPallet)
+                    if (_originalCantidadPorPallet != _cantidadModificada)
                     {
-                        string mensaje = $"Se utilizó una cantidad modificada: {_currentOrden.CantidadPorPallet} unidades por pallet (original: {_originalCantidadPorPallet})";
+                        string mensaje = $"Se utilizó una cantidad modificada: {_cantidadModificada} unidades por pallet (original: {_originalCantidadPorPallet})";
                         _logService.Information(mensaje);
                         ActivityLog?.Invoke(mensaje, ActivityLogItem.LogLevel.Info);
                     }
+
+                    // Registrar el tipo de producto usado
+                    string tipoProductoMensaje = $"Tipo de producto utilizado: {GetTipoProductoDescripcion(_tipoProductoSeleccionado)}";
+                    _logService.Information(tipoProductoMensaje);
+                    ActivityLog?.Invoke(tipoProductoMensaje, ActivityLogItem.LogLevel.Info);
 
                     // Notificar que se imprimió la etiqueta
                     EtiquetaImpresa?.Invoke(this, new EtiquetaGeneradaEventArgs(_etiquetaActual, _generatedBarcode));
@@ -743,6 +795,53 @@ namespace MolcaEtiquetadoManual.UI.Controls
                     }
                 }
             });
+        }
+
+        // Manejador para cuando se selecciona un tipo de producto
+        private void CmbTipoProducto_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (cmbTipoProducto.SelectedItem != null)
+                {
+                    // Obtener el valor del tag que contiene el dígito del tipo de producto
+                    ComboBoxItem selectedItem = (ComboBoxItem)cmbTipoProducto.SelectedItem;
+                    _tipoProductoSeleccionado = selectedItem.Tag?.ToString() ?? "0";
+
+                    // Actualizar la descripción - Verificar que el control exista
+                    if (txtTipoProductoDescripcion != null)
+                    {
+                        txtTipoProductoDescripcion.Text = GetTipoProductoDescripcion(_tipoProductoSeleccionado);
+                    }
+
+                    // Actualizar lote y vista previa con el nuevo tipo seleccionado
+                    if (_currentOrden != null)
+                    {
+                        var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+
+                        // Actualizar el lote en la UI
+                        string fechaFormateada = fechaProduccion.ToString("ddMMyy");
+                        if (txtLote != null)
+                        {
+                            txtLote.Text = $"{fechaFormateada}{_tipoProductoSeleccionado}";
+                        }
+
+                        // Actualizar vista previa
+                        GenerarVistaPreliminar(turnoActual, fechaProduccion);
+
+                        // Registrar cambio en log
+                        string mensaje = $"Tipo de producto cambiado a: {GetTipoProductoDescripcion(_tipoProductoSeleccionado)}";
+                        _logService?.Information(mensaje);
+                        ActivityLog?.Invoke(mensaje, ActivityLogItem.LogLevel.Info);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Manejo seguro de la excepción
+                _logService?.Error(ex, "Error al cambiar el tipo de producto");
+                ActivityLog?.Invoke($"Error al cambiar tipo de producto: {ex.Message}", ActivityLogItem.LogLevel.Error);
+            }
         }
 
         // Nuevos métodos para el manejo de la edición de cantidad por pallet

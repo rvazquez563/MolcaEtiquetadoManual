@@ -38,8 +38,8 @@ namespace MolcaEtiquetadoManual.UI.Controls
             string fechaDeclaracion = preview.FechaProduccion.ToString("yyMMdd HH:mm");
             txtFechaHoraDeclaracion.Text = fechaDeclaracion;
 
-            // Programa de producción y turno (obtener los primeros 7 caracteres del lote)
-            txtProgramaYTurno.Text = preview.Lote.Length > 7 ? preview.Lote.Substring(0, 7) : preview.Lote;
+            // Mostrar el lote con el nuevo formato DDMMYY#
+            txtLote.Text = preview.Lote;
 
             // DUN14
             txtDun14.Text = preview.DUN14;
@@ -71,7 +71,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
         {
             txtFechaVencimiento.Text = "";
             txtFechaHoraDeclaracion.Text = "";
-            txtProgramaYTurno.Text = "";
+            txtLote.Text = "";
             txtDun14.Text = "";
             txtDescripcion.Text = "";
             txtNumeroArticulo.Text = "";

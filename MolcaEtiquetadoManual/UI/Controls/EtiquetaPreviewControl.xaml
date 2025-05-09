@@ -17,7 +17,7 @@
                     <RowDefinition Height="Auto" />
                     <!-- Fecha y hora de declaración -->
                     <RowDefinition Height="Auto" />
-                    <!-- Programa de producción y turno -->
+                    <!-- Fecha de elaboración / Lote -->
                     <RowDefinition Height="Auto" />
                     <!-- Codigo DUN14 -->
                     <RowDefinition Height="Auto" />
@@ -45,11 +45,12 @@
                            FontSize="16" 
                            Margin="0,0,0,5"/>
 
-                <!-- Programa de producción y turno: XXXXXXX -->
-                <TextBlock x:Name="txtProgramaYTurno" 
+                <!-- Fecha elaboración / Lote: DDMMYY# -->
+                <TextBlock x:Name="txtLote" 
                            Grid.Row="2" 
-                           Text="5142551" 
+                           Text="0605230" 
                            FontSize="16" 
+                           FontWeight="Bold"
                            Margin="0,0,0,5"/>
 
                 <!-- Codigo DUN14 -->
