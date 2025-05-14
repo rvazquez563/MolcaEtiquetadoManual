@@ -18,6 +18,7 @@ namespace MolcaEtiquetadoManual.Core.Services
         private readonly int _printerPort;
         private readonly string _formatName;
         private readonly string _formatUnit;
+        private readonly int _labelQuantity;
         private readonly ILogService _logService;
         private readonly IConfiguration _configuration;
         private readonly BackgroundWorker _printWorker;
@@ -31,6 +32,8 @@ namespace MolcaEtiquetadoManual.Core.Services
             _printerPort = int.Parse(printerSection["Port"]);
             _formatName = printerSection["FormatName"] ?? "MOLCA.ZPL";
             _formatUnit = printerSection["FormatUnit"] ?? "E";
+            // Obtener cantidad de etiquetas (valor por defecto: 1)
+            _labelQuantity = int.Parse(printerSection["LabelQuantity"] ?? "1");
             _logService = logService;
             _configuration = configuration;
 
@@ -41,7 +44,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             _printWorker.ProgressChanged += PrintWorker_ProgressChanged;
             _printWorker.RunWorkerCompleted += PrintWorker_RunWorkerCompleted;
 
-            _logService.Information($"Inicializando servicio de impresión: IP={_printerIp}, Puerto={_printerPort}, Formato={_formatName}");
+            _logService.Information($"Inicializando servicio de impresión: IP={_printerIp}, Puerto={_printerPort}, Formato={_formatName}, Cantidad de etiquetas={_labelQuantity}");
         }
 
         public event EventHandler<PrintProgressEventArgs> PrintProgress;
@@ -84,7 +87,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                 };
 
                 // Notificar inicio
-                OnPrintProgress(0, "Iniciando proceso de impresión...");
+                OnPrintProgress(0, $"Iniciando proceso de impresión de {_labelQuantity} etiqueta(s)...");
 
                 // Iniciar el worker
                 _printWorker.RunWorkerAsync(printData);
@@ -107,7 +110,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                 try
                 {
                     // Simulamos el progreso de impresión
-                    OnPrintProgress(10, "Conectando con la impresora...");
+                    OnPrintProgress(10, $"Conectando con la impresora para imprimir {_labelQuantity} etiqueta(s)...");
                     await Task.Delay(500);
 
                     OnPrintProgress(30, "Enviando datos de la etiqueta...");
@@ -120,7 +123,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                     await Task.Delay(500);
 
                     // Completamos la impresión con éxito
-                    OnPrintCompleted(true, "Impresión completada exitosamente.");
+                    OnPrintCompleted(true, $"Impresión de {_labelQuantity} etiqueta(s) completada exitosamente.");
                 }
                 catch (Exception ex)
                 {
@@ -185,7 +188,10 @@ namespace MolcaEtiquetadoManual.Core.Services
             sb.AppendLine($"{chr}FN7{chr}FD{cantidadBultos}{chr}FS");  // Bultos
             sb.AppendLine($"{chr}FN8{chr}FD{codBarrasH}{chr}FS");  // Código barras H
             sb.AppendLine($"{chr}FN9{chr}FD{codBarrasV}{chr}FS");  // Código barras V
-            sb.AppendLine($"{chr}PQ1,0,1,Y");  // Cantidad de etiquetas (1)
+
+            // Usar la cantidad de etiquetas configurada
+            sb.AppendLine($"{chr}PQ{_labelQuantity},0,1,Y");  // Cantidad de etiquetas configurada
+
             sb.AppendLine($"{chr}XZ");  // Finalizar formato
 
             return sb.ToString();
@@ -205,7 +211,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                 }
 
                 // Reportar progreso
-                worker.ReportProgress(10, "Conectando con la impresora...");
+                worker.ReportProgress(10, $"Conectando con la impresora para imprimir {_labelQuantity} etiqueta(s)...");
 
                 // Usar el token de cancelación
                 var token = _cancellationTokenSource.Token;
@@ -249,7 +255,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                             return;
                         }
 
-                        worker.ReportProgress(40, "Conexión establecida. Preparando datos...");
+                        worker.ReportProgress(40, $"Conexión establecida. Preparando datos para {_labelQuantity} etiqueta(s)...");
 
                         // Convertir el texto a bytes
                         byte[] data = Encoding.ASCII.GetBytes(jobData.ZplCommand);
@@ -286,13 +292,13 @@ namespace MolcaEtiquetadoManual.Core.Services
                                     $"Enviando datos: {bytesSent}/{totalBytes} bytes");
                             }
 
-                            worker.ReportProgress(95, "Finalizando y verificando la impresión...");
+                            worker.ReportProgress(95, $"Finalizando y verificando la impresión de {_labelQuantity} etiqueta(s)...");
 
                             // Flush para asegurar que todos los datos se enviaron
                             stream.Flush();
                         }
 
-                        worker.ReportProgress(100, "¡Impresión completada exitosamente!");
+                        worker.ReportProgress(100, $"¡Impresión de {_labelQuantity} etiqueta(s) completada exitosamente!");
 
                         // Devolver resultado exitoso
                         e.Result = true;
@@ -367,7 +373,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             else
             {
                 success = (bool)e.Result;
-                message = success ? "Impresión completada exitosamente." : "La impresión no pudo completarse.";
+                message = success ? $"Impresión de {_labelQuantity} etiqueta(s) completada exitosamente." : "La impresión no pudo completarse.";
                 _logService.Information(message);
             }
 
@@ -397,7 +403,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                 string comandoZpl = GenerarComandoZPL(orden, etiqueta, codigoBarras);
                 GuardarComandoZplParaDebug(comandoZpl);
 
-                _logService.Information("Simulación de impresión exitosa");
+                _logService.Information($"Simulación de impresión exitosa para {_labelQuantity} etiqueta(s)");
                 return true;
             }
             catch (Exception ex)

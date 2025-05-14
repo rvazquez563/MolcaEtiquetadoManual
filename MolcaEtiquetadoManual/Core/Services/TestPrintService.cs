@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Windows;
+using Microsoft.Extensions.Configuration;
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Models;
 
@@ -15,11 +16,30 @@ namespace MolcaEtiquetadoManual.Core.Services
     public class TestPrintService : IPrintService
     {
         private readonly ILogService _logService;
+        private readonly IConfiguration _configuration;
+        private readonly int _labelQuantity;
 
-        public TestPrintService(ILogService logService)
+        public TestPrintService(ILogService logService, IConfiguration configuration = null)
         {
             _logService = logService;
-            _logService.Information("Inicializando servicio de impresión para PRUEBAS");
+            _configuration = configuration;
+
+            // Obtener la cantidad de etiquetas de la configuración
+            _labelQuantity = 1; // Valor por defecto
+
+            if (_configuration != null)
+            {
+                var printerSection = _configuration.GetSection("PrinterSettings");
+                if (printerSection != null && printerSection["LabelQuantity"] != null)
+                {
+                    if (int.TryParse(printerSection["LabelQuantity"], out int quantity) && quantity > 0)
+                    {
+                        _labelQuantity = quantity;
+                    }
+                }
+            }
+
+            _logService.Information($"Inicializando servicio de impresión para PRUEBAS (Cantidad de etiquetas: {_labelQuantity})");
         }
 
         public bool ImprimirEtiqueta(OrdenProduccion orden, EtiquetaGenerada etiqueta, string codigoBarras)
@@ -32,7 +52,7 @@ namespace MolcaEtiquetadoManual.Core.Services
         {
             try
             {
-                _logService.Information("SIMULANDO impresión de etiqueta");
+                _logService.Information($"SIMULANDO impresión de {_labelQuantity} etiqueta(s)");
 
                 // Crear un "ticket" visual de la etiqueta para mostrar
                 StringBuilder ticketInfo = new StringBuilder();
@@ -42,7 +62,8 @@ namespace MolcaEtiquetadoManual.Core.Services
                 ticketInfo.AppendLine($"Cantidad: {orden.CantidadPorPallet} unidades por pallet");
                 ticketInfo.AppendLine($"Programa: {orden.ProgramaProduccion}");
                 ticketInfo.AppendLine($"Lote: {etiqueta.LOTN}");
-                ticketInfo.AppendLine($"Vencimiento: {etiqueta.URDT:dd/MM/yyyy}");
+                ticketInfo.AppendLine($"Vencimiento: {etiqueta.EXPR:dd/MM/yyyy}");
+                ticketInfo.AppendLine($"Cantidad de etiquetas a imprimir: {_labelQuantity}");
                 ticketInfo.AppendLine("------------------------------------------");
                 ticketInfo.AppendLine($"CÓDIGO DE BARRAS: {codigoBarras}");
                 ticketInfo.AppendLine("===========================================");
@@ -103,6 +124,12 @@ namespace MolcaEtiquetadoManual.Core.Services
             {
                 _logService.Error(ex, "Error al guardar simulación de etiqueta");
             }
+        }
+
+        public void CancelarImpresion()
+        {
+            _logService.Information("Simulación: Cancelando impresión...");
+            // No hay nada que cancelar en la simulación, solo registramos el intento
         }
     }
 }

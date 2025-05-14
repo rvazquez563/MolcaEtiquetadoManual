@@ -88,10 +88,25 @@ namespace MolcaEtiquetadoManual
             // Configurar servicio de impresión
             var useMockPrinter = Configuration.GetSection("PrinterSettings").GetValue<bool>("UseMockPrinter");
 
+            //if (useMockPrinter)
+            //{
+            //    // Usar la versión de prueba del servicio de impresión
+            //    services.AddSingleton<IPrintService, TestPrintService>();
+            //    Log.Information("Utilizando servicio de impresión para PRUEBAS");
+            //}
+            //else
+            //{
+            //    // Usar el servicio real de impresión
+            //    services.AddSingleton<IPrintService>(sp =>
+            //        new ZebraPrintService(Configuration, sp.GetRequiredService<ILogService>()));
+            //    Log.Information("Utilizando servicio de impresión REAL para Zebra");
+            //}
+
             if (useMockPrinter)
             {
                 // Usar la versión de prueba del servicio de impresión
-                services.AddSingleton<IPrintService, TestPrintService>();
+                services.AddSingleton<IPrintService>(sp =>
+                    new TestPrintService(sp.GetRequiredService<ILogService>(), Configuration));
                 Log.Information("Utilizando servicio de impresión para PRUEBAS");
             }
             else

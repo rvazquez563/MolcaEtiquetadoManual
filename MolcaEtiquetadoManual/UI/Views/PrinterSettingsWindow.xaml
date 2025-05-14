@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Configuración de Impresora" 
-        Height="550" Width="500"
+        Height="600" Width="500"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
 
@@ -64,6 +64,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Nombre Formato:" VerticalAlignment="Center"/>
@@ -71,6 +72,10 @@
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Unidad Formato:" VerticalAlignment="Center"/>
                         <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtFormatUnit" Margin="0 5"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Cant. Etiquetas:" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtLabelQuantity" Margin="0 5" 
+                                PreviewTextInput="TxtLabelQuantity_PreviewTextInput"/>
                     </Grid>
                 </GroupBox>
 

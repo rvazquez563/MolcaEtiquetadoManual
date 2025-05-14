@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using MolcaEtiquetadoManual.Core.Interfaces;
@@ -40,6 +41,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                 txtPort.Text = printerSettings["Port"] ?? "9100";
                 txtFormatName.Text = printerSettings["FormatName"] ?? "MOLCA.ZPL";
                 txtFormatUnit.Text = printerSettings["FormatUnit"] ?? "E";
+                txtLabelQuantity.Text = printerSettings["LabelQuantity"] ?? "1";
                 chkUseMockPrinter.IsChecked = bool.Parse(printerSettings["UseMockPrinter"] ?? "true");
                 chkShowPrintDialog.IsChecked = bool.Parse(printerSettings["ShowPrintDialog"] ?? "true");
 
@@ -117,6 +119,15 @@ namespace MolcaEtiquetadoManual.UI.Views
                     return;
                 }
 
+                // Validar cantidad de etiquetas
+                if (!int.TryParse(txtLabelQuantity.Text, out int labelQuantity) || labelQuantity <= 0)
+                {
+                    MessageBox.Show("La cantidad de etiquetas debe ser un número mayor a 0",
+                        "Error de validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    txtLabelQuantity.Focus();
+                    return;
+                }
+
                 // Guardar los valores en el archivo de configuración
                 GuardarConfiguracion();
 
@@ -163,6 +174,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                     ["Port"] = int.Parse(txtPort.Text),
                     ["FormatName"] = txtFormatName.Text,
                     ["FormatUnit"] = txtFormatUnit.Text,
+                    ["LabelQuantity"] = int.Parse(txtLabelQuantity.Text),
                     ["UseMockPrinter"] = chkUseMockPrinter.IsChecked == true,
                     ["ShowPrintDialog"] = chkShowPrintDialog.IsChecked == true
                 };
@@ -319,6 +331,20 @@ namespace MolcaEtiquetadoManual.UI.Views
                 _logService.Error(ex, "Error al abrir directorio de debug ZPL");
                 MessageBox.Show($"Error al abrir directorio de debug ZPL: {ex.Message}",
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Método para validar entrada - solo números
+        private void TxtLabelQuantity_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Solo permitir dígitos
+            foreach (char c in e.Text)
+            {
+                if (!char.IsDigit(c))
+                {
+                    e.Handled = true;
+                    return;
+                }
             }
         }
 
