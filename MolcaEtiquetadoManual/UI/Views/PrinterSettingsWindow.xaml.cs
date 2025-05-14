@@ -134,7 +134,8 @@ namespace MolcaEtiquetadoManual.UI.Views
                 _logService.Information("Configuración de impresora actualizada");
                 MessageBox.Show("Configuración guardada correctamente",
                     "Configuración guardada", MessageBoxButton.OK, MessageBoxImage.Information);
-
+                MessageBox.Show("La aplicación necesita reiniciarse para aplicar los cambios. Por favor, cierre y vuelva a abrir la aplicación.",
+                    "Reinicio requerido", MessageBoxButton.OK, MessageBoxImage.Warning);
                 _settingsChanged = true;
                 Close();
             }

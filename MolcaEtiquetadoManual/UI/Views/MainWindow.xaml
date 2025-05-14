@@ -10,7 +10,9 @@
         mc:Ignorable="d"
         Title="Sistema de Etiquetado Manual" 
         Height="720" Width="1280"
+        
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         Background="{DynamicResource MaterialDesignBackground}"
         MinWidth="1024" MinHeight="600">
 

@@ -61,6 +61,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
             step3Indicator.Tag = (CurrentStep == 3) ? "Active" : "Inactive";
 
             // Actualizar visibilidad de paneles
+            // Actualizar visibilidad de paneles
             step1Panel.Visibility = (CurrentStep == 1) ? Visibility.Visible : Visibility.Collapsed;
             step2Panel.Visibility = (CurrentStep == 2) ? Visibility.Visible : Visibility.Collapsed;
             step3Panel.Visibility = (CurrentStep == 3) ? Visibility.Visible : Visibility.Collapsed;
@@ -69,6 +70,21 @@ namespace MolcaEtiquetadoManual.UI.Controls
             step1Text.FontWeight = (CurrentStep == 1) ? FontWeights.Bold : FontWeights.Normal;
             step2Text.FontWeight = (CurrentStep == 2) ? FontWeights.Bold : FontWeights.Normal;
             step3Text.FontWeight = (CurrentStep == 3) ? FontWeights.Bold : FontWeights.Normal;
+
+            // Notificar a los controles de contenido que se ha cambiado el paso para que puedan enfocar sus campos
+            if (CurrentStep == 1 && step1Content.Children.Count > 0 && step1Content.Children[0] is Step1Control step1Control)
+            {
+                // Usamos BeginInvoke para asegurar que el enfoque ocurre después de que el UI se haya actualizado
+                Dispatcher.BeginInvoke(new Action(() => step1Control.Reiniciar()));
+            }
+            else if (CurrentStep == 3 && step3Content.Children.Count > 0 && step3Content.Children[0] is Step3Control step3Control)
+            {
+                // Dar tiempo para que el panel sea visible antes de intentar enfocar
+                Dispatcher.BeginInvoke(new Action(() => {
+                    if (step3Control.txtCodigoVerificacion.IsEnabled)
+                        step3Control.txtCodigoVerificacion.Focus();
+                }));
+            }
         }
 
         // Métodos para avanzar o retroceder en el flujo
