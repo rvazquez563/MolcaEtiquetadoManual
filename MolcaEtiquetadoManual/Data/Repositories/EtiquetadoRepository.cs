@@ -27,10 +27,32 @@ namespace MolcaEtiquetadoManual.Data.Repositories
         }
         public OrdenProduccion BuscarOrdenPorDun14(string dun14)
         {
-            return _context.OrdenesProduccion
-                .FirstOrDefault(o => o.DUN14 == dun14);
-        }
+            // Obtener la fecha actual para comparar con el rango permitido
+            DateTime fechaActual = DateTime.Now.Date;
 
+            // Primero buscar si existe la orden con ese DUN14, sin importar las fechas
+            var ordenExistente = _context.OrdenesProduccion.FirstOrDefault(o => o.DUN14 == dun14);
+
+            if (ordenExistente != null)
+            {
+                // Comprobar si está dentro del rango de fechas
+                if (fechaActual >= ordenExistente.FechaProduccionInicio.Date &&
+                    fechaActual <= ordenExistente.FechaProduccionFin.Date)
+                {
+                    return ordenExistente;
+                }
+                else
+                {
+                    // La orden existe pero está fuera del rango de fechas válido
+                    // Esto permitirá que el código en Step1Control pueda mostrar un mensaje específico
+                    throw new Exception($"La orden con DUN14 {dun14} existe pero está fuera del rango de fechas válido. " +
+                                       $"Rango válido: {ordenExistente.FechaProduccionInicio.ToShortDateString()} - {ordenExistente.FechaProduccionFin.ToShortDateString()}");
+                }
+            }
+
+            // No se encontró ninguna orden con ese DUN14
+            return null;
+        }
         // Reemplazar el uso de SqlQueryRaw con FromSqlInterpolated para corregir el error CS1061
 
 

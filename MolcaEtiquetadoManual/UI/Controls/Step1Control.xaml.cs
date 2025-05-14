@@ -28,8 +28,16 @@ namespace MolcaEtiquetadoManual.UI.Controls
             _etiquetadoService = etiquetadoService ?? throw new ArgumentNullException(nameof(etiquetadoService));
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
 
-            // Poner el foco inicial en el campo de texto
             Loaded += (s, e) => txtDun14.Focus();
+
+            // Asegurar que el control de texto recibe el foco cuando el control se hace visible
+            IsVisibleChanged += (s, e) =>
+            {
+                if ((bool)e.NewValue)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => txtDun14.Focus()));
+                }
+            };
         }
 
         private void BtnBuscar_Click(object sender, RoutedEventArgs e)
@@ -139,7 +147,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
                     // Registrar en el log
                     _logService.Warning("Error de BD, usando orden ficticia para pruebas: {DUN14}", dun14);
-                    ActivityLog?.Invoke($"Orden no encontrada con el codigo {dun14}!",
+                    ActivityLog?.Invoke($"Orden no encontrada con el codigo {dun14}! :+{dbEx.Message}",
                         ActivityLogItem.LogLevel.Error);
 
                     // Notificar que se "encontró" una orden

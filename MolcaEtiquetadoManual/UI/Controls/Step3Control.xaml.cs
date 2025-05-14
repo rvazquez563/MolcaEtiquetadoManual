@@ -36,8 +36,16 @@ namespace MolcaEtiquetadoManual.UI.Controls
             // Inicializar a vacío
             Limpiar();
 
-            // Poner foco en el campo de texto cuando se carga
             Loaded += (s, e) => { if (IsVisible && txtCodigoVerificacion.IsEnabled) txtCodigoVerificacion.Focus(); };
+
+            // Asegurar que el control de texto recibe el foco cuando el control se hace visible
+            IsVisibleChanged += (s, e) =>
+            {
+                if ((bool)e.NewValue && txtCodigoVerificacion.IsEnabled)
+                {
+                    Dispatcher.BeginInvoke(new Action(() => txtCodigoVerificacion.Focus()));
+                }
+            };
         }
 
         /// <summary>
