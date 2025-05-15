@@ -264,7 +264,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                     // Crear nuevo usuario
                     var nuevoUsuario = new Usuario
                     {
-                        Id = Usuarios.Count > 0 ? Usuarios.Max(u => u.Id) + 1 : 1, // Simular autoincremento
+                        //Id = Usuarios.Count > 0 ? Usuarios.Max(u => u.Id) + 1 : 1, // Simular autoincremento
                         NombreUsuario = nombreUsuario,
                         Contraseña = txtContraseña.Password,
                         Rol = rol,
