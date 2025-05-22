@@ -27,6 +27,7 @@ namespace MolcaEtiquetadoManual.Data.Repositories
         }
         public OrdenProduccion BuscarOrdenPorDun14(string dun14)
         {
+            _context.ChangeTracker.Clear();
             // Obtener la fecha actual para comparar con el rango permitido
             DateTime fechaActual = DateTime.Now.Date;
 

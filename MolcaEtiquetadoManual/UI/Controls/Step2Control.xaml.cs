@@ -25,9 +25,11 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private readonly IEtiquetaPreviewService _etiquetaPreviewService;
         private readonly Usuario _currentUser;
         private readonly IConfiguration _configuration;
+        private readonly ILineaProduccionService _lineaService;
         private Button btnCancelarImpresion;
         private OrdenProduccion _currentOrden;
         private EtiquetaGenerada _etiquetaActual;
+        private LineaProduccion linea;
         private string _generatedBarcode;
         private bool impresioncanceladaxusuario = false;
         private int _originalCantidadPorPallet;
@@ -51,7 +53,9 @@ namespace MolcaEtiquetadoManual.UI.Controls
             IJulianDateService julianDateService,
             IEtiquetaPreviewService etiquetaPreviewService,
             Usuario currentUser,
-            IConfiguration configuration
+            IConfiguration configuration,
+             ILineaProduccionService lineaService
+
             )
         {
             InitializeComponent();
@@ -65,6 +69,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
             _etiquetaPreviewService = etiquetaPreviewService ?? throw new ArgumentNullException(nameof(etiquetaPreviewService));
             _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _lineaService = lineaService;
 
             // Inicializar a vacío
             Limpiar();
@@ -498,16 +503,31 @@ namespace MolcaEtiquetadoManual.UI.Controls
             int numeroSecuencial = 1;
             int numeroPallet = 1;
             string fechaJuliana = "";
+            
+
             int lineaId = 1;
+            string nombreLinea = "ETIQ"; // Valor por defecto
 
             try
             {
+                // Obtener el número de línea desde la configuración
                 var lineNumber = _configuration.GetValue<string>("AppSettings:LineNumber") ?? "1";
                 lineaId = int.Parse(lineNumber);
+
+                // Acceder al servicio de líneas que ya debe estar inyectado en el constructor
+                if (_lineaService != null)
+                {
+                    var linea = _lineaService.GetLineaById(lineaId);
+                    if (linea != null && !string.IsNullOrEmpty(linea.Nombre))
+                    {
+                        
+                        nombreLinea = linea.Nombre; 
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                _logService.Warning("No se pudo obtener el número de línea desde la configuración, usando valor por defecto: 1");
+                _logService.Warning("Error al obtener nombre de línea: {0}", ex.Message);
             }
 
             try
@@ -612,7 +632,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
 
             return new EtiquetaGenerada
             {
-                EDUS = usuario,
+                EDUS = nombreLinea,
                 EDDT = fechaJuliana,
                 EDTN = numeroTransaccion ?? fechaProduccion.ToString("MMdd"),
                 EDLN = numeroSecuencial,
@@ -627,7 +647,7 @@ namespace MolcaEtiquetadoManual.UI.Controls
                 SHFT = turnoActual,
                 URDT = fechaVencimientoJuliana,
                 SEC = numeroPallet,
-                ESTADO = "1", // 1 = Activa/Pendiente
+                ESTADO = "0", // 0 = Pendiente
                 URRF = orden.DUN14,
                 FechaCreacion = DateTime.Now,
                 Confirmada = false,

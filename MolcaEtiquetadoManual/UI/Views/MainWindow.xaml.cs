@@ -148,7 +148,8 @@ namespace MolcaEtiquetadoManual.UI.Views
                     _julianDateService,
                     _etiquetaPreviewService,
                     _currentUser,
-                    _configuration);
+                    _configuration,
+                    _lineaService);
                 _step2Control.EtiquetaImpresa += Step2Control_EtiquetaImpresa;
                 _step2Control.CancelarSolicitado += Step2Control_CancelarSolicitado;
                 _step2Control.ActivityLog += AddActivityLogItem;

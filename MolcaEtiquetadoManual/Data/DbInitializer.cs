@@ -109,10 +109,10 @@ namespace MolcaEtiquetadoManual.Data
 
                 var lineas = new LineaProduccion[]
                 {
-                    new LineaProduccion { Nombre = "Línea 1", Descripcion = "Línea principal de producción", Activa = true },
-                    new LineaProduccion { Nombre = "Línea 2", Descripcion = "Línea secundaria de producción", Activa = true },
-                    new LineaProduccion { Nombre = "Línea 3", Descripcion = "Línea terciaria de producción", Activa = true },
-                    new LineaProduccion { Nombre = "Línea 4", Descripcion = "Línea cuaternaria de producción", Activa = true }
+                    new LineaProduccion { Nombre = "SECO1", Descripcion = "Estrechadora 1 Declaración secos", Activa = true },
+                    new LineaProduccion { Nombre = "SECO2", Descripcion = "Estrechadora 2 Declaración secos", Activa = true },
+                    new LineaProduccion { Nombre = "CONG1", Descripcion = "Estrechadora 1 Empaque congelados", Activa = true },
+                    new LineaProduccion { Nombre = "CONG2", Descripcion = "Estrechadora 2 Empaque congelados", Activa = true }
                 };
 
                 foreach (var l in lineas)
