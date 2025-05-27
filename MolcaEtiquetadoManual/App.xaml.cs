@@ -17,9 +17,12 @@ namespace MolcaEtiquetadoManual
 {
     public partial class App : Application
     {
-        private ServiceProvider serviceProvider;
-        public static IConfiguration Configuration { get; private set; }
 
+        private ServiceProvider serviceProvider;
+        private KioskManager _kioskManager;           // ← NUEVA LÍNEA
+        private bool _kioskModeEnabled;               // ← NUEVA LÍNEA
+
+        public static IConfiguration Configuration { get; private set; }
         public App()
         {
             // Configurar acceso al archivo de configuración
@@ -88,19 +91,16 @@ namespace MolcaEtiquetadoManual
             // Configurar servicio de impresión
             var useMockPrinter = Configuration.GetSection("PrinterSettings").GetValue<bool>("UseMockPrinter");
 
-            //if (useMockPrinter)
-            //{
-            //    // Usar la versión de prueba del servicio de impresión
-            //    services.AddSingleton<IPrintService, TestPrintService>();
-            //    Log.Information("Utilizando servicio de impresión para PRUEBAS");
-            //}
-            //else
-            //{
-            //    // Usar el servicio real de impresión
-            //    services.AddSingleton<IPrintService>(sp =>
-            //        new ZebraPrintService(Configuration, sp.GetRequiredService<ILogService>()));
-            //    Log.Information("Utilizando servicio de impresión REAL para Zebra");
-            //}
+                if (_kioskModeEnabled)
+            {
+                // Crear el KioskManager aquí para asegurar que esté disponible
+                services.AddSingleton<KioskManager>(sp => 
+                {
+                    var logService = sp.GetRequiredService<ILogService>();
+                    return new KioskManager(logService);
+                });
+            }
+
 
             if (useMockPrinter)
             {
@@ -126,7 +126,8 @@ namespace MolcaEtiquetadoManual
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            DispatcherUnhandledException += App_DispatcherUnhandledException;
             // Inicializar la base de datos con datos
             using (var scope = serviceProvider.CreateScope())
             {
@@ -145,14 +146,77 @@ namespace MolcaEtiquetadoManual
             }
 
             var loginWindow = serviceProvider.GetRequiredService<LoginWindow>();
+
+            
+            //// Si el modo Kiosk está habilitado, configurar la ventana
+            //if (_kioskModeEnabled && _kioskManager != null)
+            //{
+            //    loginWindow.Loaded += LoginWindow_Loaded;
+            //    Log.Information("Ventana de login configurada para modo Kiosk");
+            //}
+
             loginWindow.Show();
         }
+        private void LoginWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_kioskManager != null && sender is Window window)
+            {
+                try
+                {
+                    _kioskManager.EnableKioskMode(window);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error al activar modo Kiosk en ventana de login");
+                }
+            }
+        }
 
+        // Manejar excepciones no controladas
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Log.Fatal((Exception)e.ExceptionObject, "Excepción no controlada en el dominio de aplicación");
+
+            if (_kioskManager != null)
+            {
+                _kioskManager.DisableKioskMode();
+            }
+        }
+
+        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            Log.Error(e.Exception, "Excepción no controlada en el dispatcher");
+
+            // Manejar la excepción para evitar que la aplicación se cierre
+            e.Handled = true;
+
+            MessageBox.Show($"Ha ocurrido un error inesperado:\n{e.Exception.Message}",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
         protected override void OnExit(ExitEventArgs e)
         {
-            Log.Information("Cerrando aplicación");
-            Log.CloseAndFlush();
-            base.OnExit(e);
+            try
+            {
+                Log.Information("Cerrando aplicación");
+
+                // AGREGAR ESTAS LÍNEAS:
+                // Deshabilitar modo Kiosk si estaba activo
+                if (_kioskModeEnabled && _kioskManager != null)
+                {
+                    _kioskManager.DisableKioskMode();
+                    Log.Information("Modo Kiosk deshabilitado al cerrar aplicación");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error al limpiar recursos durante el cierre");
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+                serviceProvider?.Dispose();        // ← AGREGAR ESTA LÍNEA
+                base.OnExit(e);
+            }
         }
     }
 }
