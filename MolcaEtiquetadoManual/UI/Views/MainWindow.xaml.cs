@@ -25,6 +25,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly ILineaProduccionService _lineaService;
         private readonly Usuario _currentUser;
         private bool enciclo = false;
+        private bool _isSessionCloseRequested = false;
         // Controles de pasos
         private Step1Control _step1Control;
         private Step2Control _step2Control;
@@ -146,6 +147,75 @@ namespace MolcaEtiquetadoManual.UI.Views
             }
         }
 
+        // ✅ SIMPLIFICAR EL MÉTODO DE CIERRE DE SESIÓN
+        private void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
+        {
+            if (enciclo)
+            {
+                _logService.Warning("No se puede cerrar sesión mientras hay un proceso de impresión en curso.", _currentUser.NombreUsuario);
+                AddActivityLogItem("No se puede cerrar sesión mientras hay un proceso de impresión en curso.", ActivityLogItem.LogLevel.Warning);
+                MessageBox.Show("No se puede cerrar sesión mientras hay un proceso de impresión en curso.",
+                       "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // En modo Kiosk, solo cerrar sesión pero mantener la aplicación abierta
+            if (_kioskModeEnabled)
+            {
+                var result = MessageBox.Show(
+                    "¿Desea cerrar la sesión actual?\n\nLa aplicación permanecerá abierta para el siguiente usuario.",
+                    "Cerrar Sesión - Modo Kiosk",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _logService.Information("Sesión cerrada en modo Kiosk - Usuario: {Username}", _currentUser.NombreUsuario);
+
+                    // ✅ MARCAR COMO CAMBIO DE SESIÓN NORMAL
+                    _isSessionCloseRequested = true;
+
+                    // Crear nueva ventana de login con Kiosk habilitado
+                    var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
+                                                    _turnoService, _logService, _etiquetaPreviewService,
+                                                    _lineaService, _barcodeService, _julianDateService,
+                                                    _configuration, _kioskManager);
+
+                    // Configurar Kiosk en la nueva ventana de login
+                    if (_kioskManager != null)
+                    {
+                        loginWindow.Loaded += (s, ev) =>
+                        {
+                            try
+                            {
+                                _kioskManager.EnableKioskMode(loginWindow);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logService.Error(ex, "Error al reactivar Kiosk en nueva ventana de login");
+                            }
+                        };
+                    }
+
+                    loginWindow.Show();
+                    this.Close(); // Ahora no preguntará
+                }
+            }
+            else
+            {
+                // Comportamiento normal (no Kiosk)
+                _logService.Information("Sesión cerrada - Usuario: {Username}", _currentUser.NombreUsuario);
+
+                // ✅ MARCAR COMO CAMBIO DE SESIÓN NORMAL
+                _isSessionCloseRequested = true;
+
+                var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
+                                                _turnoService, _logService, _etiquetaPreviewService,
+                                                _lineaService, _barcodeService, _julianDateService, _configuration);
+                loginWindow.Show();
+                this.Close();
+            }
+        }
         private void ConfigureKioskUI()
         {
             try
@@ -194,6 +264,11 @@ namespace MolcaEtiquetadoManual.UI.Views
         }
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (_isSessionCloseRequested)
+            {
+                return;
+            }
+
             if (enciclo)
             {
                 // Hay un proceso en curso, no permitir cerrar
@@ -207,7 +282,6 @@ namespace MolcaEtiquetadoManual.UI.Views
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
-            // AGREGAR ESTA SECCIÓN:
             else if (_kioskModeEnabled)
             {
                 // En modo Kiosk, no permitir cerrar fácilmente
@@ -365,63 +439,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         }
         #endregion
 
-        private void BtnCerrarSesion_Click(object sender, RoutedEventArgs e)
-        {
-            if (enciclo)
-            {
-                _logService.Warning("No se puede cerrar sesión mientras hay un proceso de impresión en curso.", _currentUser.NombreUsuario);
-                AddActivityLogItem("No se puede cerrar sesión mientras hay un proceso de impresión en curso.", ActivityLogItem.LogLevel.Warning);
-                MessageBox.Show("No se puede cerrar sesión mientras hay un proceso de impresión en curso.",
-                       "Advertencia", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            else
-            {
-                // MODIFICAR ESTA SECCIÓN:
-                // En modo Kiosk, solo cerrar sesión pero mantener la aplicación abierta
-                if (_kioskModeEnabled)
-                {
-                    var result = MessageBox.Show(
-                        "¿Desea cerrar la sesión actual?\n\nLa aplicación permanecerá abierta para el siguiente usuario.",
-                        "Cerrar Sesión - Modo Kiosk",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        _logService.Information("Sesión cerrada en modo Kiosk - Usuario: {Username}", _currentUser.NombreUsuario);
-
-                        // Crear nueva ventana de login con Kiosk habilitado
-                        var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
-                                                        _turnoService, _logService, _etiquetaPreviewService,
-                                                        _lineaService, _barcodeService, _julianDateService,
-                                                        _configuration, _kioskManager);  // ← Pasar KioskManager
-
-                        // Configurar la nueva ventana de login para Kiosk
-                        if (_kioskManager != null)
-                        {
-                            loginWindow.Loaded += (s, ev) => _kioskManager.EnableKioskMode(loginWindow);
-                        }
-
-                        loginWindow.Show();
-
-                        // Cerrar ventana actual sin deshabilitar Kiosk
-                        this.Loaded -= MainWindow_Loaded; // Desuscribirse del evento
-                        this.Close();
-                    }
-                }
-                else
-                {
-                    // Comportamiento normal (no Kiosk)
-                    _logService.Information("Sesión cerrada - Usuario: {Username}", _currentUser.NombreUsuario);
-
-                    var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
-                                                    _turnoService, _logService, _etiquetaPreviewService,
-                                                    _lineaService, _barcodeService, _julianDateService, _configuration);
-                    loginWindow.Show();
-                    this.Close();
-                }
-            }
-        }
+       
 
         //private void BtnConfigImpresora_Click(object sender, RoutedEventArgs e)
         //{

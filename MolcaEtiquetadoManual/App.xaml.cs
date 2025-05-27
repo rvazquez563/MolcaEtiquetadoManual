@@ -17,12 +17,12 @@ namespace MolcaEtiquetadoManual
 {
     public partial class App : Application
     {
-
         private ServiceProvider serviceProvider;
-        private KioskManager _kioskManager;           // ← NUEVA LÍNEA
-        private bool _kioskModeEnabled;               // ← NUEVA LÍNEA
+        private KioskManager _kioskManager;
+        private bool _kioskModeEnabled;
 
         public static IConfiguration Configuration { get; private set; }
+
         public App()
         {
             // Configurar acceso al archivo de configuración
@@ -32,6 +32,9 @@ namespace MolcaEtiquetadoManual
 
             Configuration = builder.Build();
 
+            // ✅ LEER LA CONFIGURACIÓN DE KIOSK AQUÍ
+            _kioskModeEnabled = Configuration.GetSection("KioskSettings").GetValue<bool>("Enabled", false);
+
             // Configurar Serilog
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(Configuration)
@@ -39,7 +42,7 @@ namespace MolcaEtiquetadoManual
 
             try
             {
-                Log.Information("Iniciando aplicación");
+                Log.Information("Iniciando aplicación - Modo Kiosk: {KioskEnabled}", _kioskModeEnabled);
 
                 // Configurar servicios
                 ServiceCollection services = new ServiceCollection();
@@ -77,30 +80,28 @@ namespace MolcaEtiquetadoManual
             services.AddTransient<UsuarioRepository>();
             services.AddTransient<EtiquetadoRepository>();
             services.AddTransient<LineaProduccionRepository>();
+
             // Registrar servicios
             services.AddTransient<IUsuarioService, UsuarioService>();
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
             services.AddTransient<ITurnoService, TurnoService>();
             services.AddTransient<ILineaProduccionService, LineaProduccionService>();
+
             // Registrar servicio de códigos de barras
             services.AddSingleton<IBarcodeService, ZXingBarcodeService>();
 
             // Registrar servicio de vista previa de etiquetas
             services.AddSingleton<IEtiquetaPreviewService, EtiquetaPreviewService>();
 
+            // ✅ REGISTRAR KIOSKMANAGER SIEMPRE (no solo si está habilitado)
+            services.AddSingleton<KioskManager>(sp =>
+            {
+                var logService = sp.GetRequiredService<ILogService>();
+                return new KioskManager(logService);
+            });
+
             // Configurar servicio de impresión
             var useMockPrinter = Configuration.GetSection("PrinterSettings").GetValue<bool>("UseMockPrinter");
-
-                if (_kioskModeEnabled)
-            {
-                // Crear el KioskManager aquí para asegurar que esté disponible
-                services.AddSingleton<KioskManager>(sp => 
-                {
-                    var logService = sp.GetRequiredService<ILogService>();
-                    return new KioskManager(logService);
-                });
-            }
-
 
             if (useMockPrinter)
             {
@@ -128,6 +129,7 @@ namespace MolcaEtiquetadoManual
             base.OnStartup(e);
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             DispatcherUnhandledException += App_DispatcherUnhandledException;
+
             // Inicializar la base de datos con datos
             using (var scope = serviceProvider.CreateScope())
             {
@@ -145,18 +147,21 @@ namespace MolcaEtiquetadoManual
                 }
             }
 
+            // ✅ OBTENER KIOSKMANAGER DEL CONTENEDOR DE DI
+            _kioskManager = serviceProvider.GetRequiredService<KioskManager>();
+
             var loginWindow = serviceProvider.GetRequiredService<LoginWindow>();
 
-            
-            //// Si el modo Kiosk está habilitado, configurar la ventana
-            //if (_kioskModeEnabled && _kioskManager != null)
-            //{
-            //    loginWindow.Loaded += LoginWindow_Loaded;
-            //    Log.Information("Ventana de login configurada para modo Kiosk");
-            //}
+            // Si el modo Kiosk está habilitado, configurar la ventana
+            if (_kioskModeEnabled && _kioskManager != null)
+            {
+                loginWindow.Loaded += LoginWindow_Loaded;
+                Log.Information("Ventana de login configurada para modo Kiosk");
+            }
 
             loginWindow.Show();
         }
+
         private void LoginWindow_Loaded(object sender, RoutedEventArgs e)
         {
             if (_kioskManager != null && sender is Window window)
@@ -164,6 +169,7 @@ namespace MolcaEtiquetadoManual
                 try
                 {
                     _kioskManager.EnableKioskMode(window);
+                    Log.Information("Modo Kiosk activado en ventana de login");
                 }
                 catch (Exception ex)
                 {
@@ -193,13 +199,13 @@ namespace MolcaEtiquetadoManual
             MessageBox.Show($"Ha ocurrido un error inesperado:\n{e.Exception.Message}",
                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+
         protected override void OnExit(ExitEventArgs e)
         {
             try
             {
                 Log.Information("Cerrando aplicación");
 
-                // AGREGAR ESTAS LÍNEAS:
                 // Deshabilitar modo Kiosk si estaba activo
                 if (_kioskModeEnabled && _kioskManager != null)
                 {
@@ -214,7 +220,7 @@ namespace MolcaEtiquetadoManual
             finally
             {
                 Log.CloseAndFlush();
-                serviceProvider?.Dispose();        // ← AGREGAR ESTA LÍNEA
+                serviceProvider?.Dispose();
                 base.OnExit(e);
             }
         }

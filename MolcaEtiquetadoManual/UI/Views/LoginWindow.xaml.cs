@@ -24,17 +24,18 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly ILineaProduccionService _lineaService;
         private readonly KioskManager _kioskManager;
         private readonly bool _kioskModeEnabled;
+        private bool _isNormalClose = false;
         public LoginWindow(IUsuarioService usuarioService,
                          IEtiquetadoService etiquetadoService,
                          IPrintService printService,
                          ITurnoService turnoService,
                          ILogService logService,
-                         IEtiquetaPreviewService etiquetaPreviewService ,
-                          ILineaProduccionService lineaService,
+                         IEtiquetaPreviewService etiquetaPreviewService,
+                         ILineaProduccionService lineaService,
                          IBarcodeService barcodeService = null,
                          IJulianDateService julianDateService = null,
                          IConfiguration configuration = null,
-                        KioskManager kioskManager = null)
+                         KioskManager kioskManager = null)
         {
             InitializeComponent();
 
@@ -48,8 +49,9 @@ namespace MolcaEtiquetadoManual.UI.Views
             _barcodeService = barcodeService;
             _julianDateService = julianDateService;
             _configuration = configuration;
-            // Configuración de Kiosk
             _kioskManager = kioskManager;
+
+            // ✅ LEER CORRECTAMENTE EL MODO KIOSK
             _kioskModeEnabled = _configuration?.GetSection("KioskSettings").GetValue<bool>("Enabled", false) ?? false;
 
             // Cargar versión desde configuración
@@ -58,83 +60,59 @@ namespace MolcaEtiquetadoManual.UI.Views
                 string version = _configuration.GetSection("AppSettings")["Version"] ?? "1.0.0";
                 txtVersion.Text = $"v{version}";
 
-                // AGREGAR ESTAS LÍNEAS:
                 if (_kioskModeEnabled)
                 {
                     txtVersion.Text += " - KIOSK";
+                    this.Title += " - MODO KIOSK";
                 }
             }
 
             _logService.Information("Ventana de login iniciada - Modo Kiosk: {KioskMode}", _kioskModeEnabled);
 
-            // Enfocar el campo de usuario
-            Loaded += (s, e) => txtUsername.Focus();
-
-            // AGREGAR ESTAS LÍNEAS:
-            // Si estamos en modo Kiosk, configurar la ventana
-            if (_kioskModeEnabled)
-            {
-                ConfigureKioskLogin();
-            }
-            // Cargar versión desde configuración
-            if (_configuration != null)
-            {
-                string version = _configuration.GetSection("AppSettings")["Version"] ?? "1.0.0";
-                txtVersion.Text = $"v{version}";
-            }
-
-            _logService.Information("Ventana de login iniciada");
-
-            // Enfocar el campo de usuario
+            // ✅ EVENTO LOADED SIMPLIFICADO
             Loaded += LoginWindow_Loaded_Event;
         }
+
         private void LoginWindow_Loaded_Event(object sender, RoutedEventArgs e)
-          {
-        // Enfocar campo de usuario
-        txtUsername.Focus();
-        
-        // DEBUG: Mostrar información de estado
-        MessageBox.Show($"DEBUG INFO:\n" +
-                       $"Kiosk Enabled: {_kioskModeEnabled}\n" +
-                       $"KioskManager is null: {_kioskManager == null}\n" +
-                       $"Window Title: {this.Title}", 
-                       "DEBUG Kiosk", MessageBoxButton.OK);
-        
-        // Si modo Kiosk está habilitado, activarlo
-        if (_kioskModeEnabled && _kioskManager != null)
         {
-            try
+            // Enfocar campo de usuario
+            txtUsername.Focus();
+
+            // Si modo Kiosk está habilitado, activarlo
+            if (_kioskModeEnabled && _kioskManager != null)
             {
-                _logService.Information("=== INICIANDO ACTIVACIÓN DE KIOSK ===");
-                MessageBox.Show("Activando modo Kiosk ahora...", "DEBUG", MessageBoxButton.OK);
-                
-                _kioskManager.EnableKioskMode(this);
-                
-                MessageBox.Show("Kiosk activado - ¿Ves pantalla completa?", "DEBUG", MessageBoxButton.OK);
-                _logService.Information("=== KIOSK ACTIVADO EXITOSAMENTE ===");
+                try
+                {
+                    _logService.Information("Activando modo Kiosk en ventana de login");
+                    _kioskManager.EnableKioskMode(this);
+                    _logService.Information("Modo Kiosk activado exitosamente");
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error al activar modo Kiosk");
+                    MessageBox.Show($"Error al activar modo Kiosk: {ex.Message}",
+                                   "Error Kiosk", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                _logService.Error(ex, "ERROR al activar modo Kiosk");
-                MessageBox.Show($"ERROR Kiosk: {ex.Message}\n\nStack: {ex.StackTrace}", 
-                               "ERROR DEBUG", MessageBoxButton.OK);
+                _logService.Information("Modo Kiosk no activado - Habilitado: {Enabled}, Manager disponible: {ManagerAvailable}",
+                                      _kioskModeEnabled, _kioskManager != null);
             }
         }
-        else
-        {
-            string reason = "";
-            if (!_kioskModeEnabled) reason += "Kiosk no habilitado en config. ";
-            if (_kioskManager == null) reason += "KioskManager es null. ";
-            
-            MessageBox.Show($"NO SE ACTIVÓ KIOSK: {reason}", "DEBUG", MessageBoxButton.OK);
-        }
-    }
+
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
+            // Si es un cierre normal (login exitoso), no preguntar
+            if (_isNormalClose)
+            {
+                base.OnClosing(e);
+                return;
+            }
+
+            // Solo preguntar si es un cierre manual en modo Kiosk
             if (_kioskModeEnabled)
             {
-                // En modo Kiosk, no permitir cerrar la ventana de login fácilmente
-                // a menos que se esté haciendo una transición normal
                 var result = MessageBox.Show(
                     "¿Está seguro que desea cerrar la aplicación?\n\nEsto desactivará el modo Kiosk.",
                     "Confirmar cierre - Modo Kiosk",
@@ -159,20 +137,7 @@ namespace MolcaEtiquetadoManual.UI.Views
 
             base.OnClosing(e);
         }
-        private void ConfigureKioskLogin()
-        {
-            try
-            {
-                // Cambiar el título para indicar modo Kiosk
-                this.Title += " - MODO KIOSK";
 
-                _logService.Information("Ventana de login configurada para modo Kiosk");
-            }
-            catch (Exception ex)
-            {
-                _logService.Error(ex, "Error al configurar login para modo Kiosk");
-            }
-        }
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
             Login();
@@ -216,7 +181,8 @@ namespace MolcaEtiquetadoManual.UI.Views
                     _logService.Information("Autenticación exitosa: usuario {Username}, rol {Role}",
                         usuario.NombreUsuario, usuario.Rol);
 
-                    
+                    _isNormalClose = true;
+
                     var mainWindow = new MainWindow(
                         usuario,
                         _etiquetadoService,
@@ -229,7 +195,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                         _barcodeService,
                         _julianDateService,
                         _configuration,
-                        _kioskManager); 
+                        _kioskManager);
 
                     mainWindow.Show();
                     this.Close();

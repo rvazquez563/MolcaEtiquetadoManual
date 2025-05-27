@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
 using MolcaEtiquetadoManual.Core.Interfaces;
+using System.Linq;
 
 namespace MolcaEtiquetadoManual.Core.Services
 {
@@ -31,10 +32,10 @@ namespace MolcaEtiquetadoManual.Core.Services
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
             int X, int Y, int cx, int cy, uint uFlags);
 
-        // Constantes para las funciones de Windows - CORREGIDAS
+        // ✅ CONSTANTES CORREGIDAS
         private const int SW_HIDE = 0;
         private const int SW_SHOW = 1;
-        private static readonly IntPtr HWND_TOPMOST = (IntPtr)(-1);  // Cambiar const por static readonly
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         private const uint SWP_NOMOVE = 0x0002;
         private const uint SWP_NOSIZE = 0x0001;
 
@@ -56,35 +57,27 @@ namespace MolcaEtiquetadoManual.Core.Services
                 _kioskModeEnabled = true;
 
                 _logService.Information("=== INICIANDO ACTIVACIÓN DE MODO KIOSK ===");
-                MessageBox.Show("PASO 1: Configurando ventana principal...", "DEBUG KIOSK", MessageBoxButton.OK);
 
                 // 1. Configurar ventana principal para pantalla completa
                 ConfigureMainWindow(mainWindow);
-                MessageBox.Show("PASO 2: Ocultando barra de tareas...", "DEBUG KIOSK", MessageBoxButton.OK);
 
                 // 2. Ocultar barra de tareas
                 HideTaskbar();
-                MessageBox.Show("PASO 3: Deshabilitando Task Manager...", "DEBUG KIOSK", MessageBoxButton.OK);
 
                 // 3. Deshabilitar Task Manager
                 DisableTaskManager();
-                MessageBox.Show("PASO 4: Configurando interceptor de teclas...", "DEBUG KIOSK", MessageBoxButton.OK);
 
                 // 4. Configurar interceptor de teclas peligrosas
                 SetupKeyInterceptor(mainWindow);
-                MessageBox.Show("PASO 5: Iniciando watchdog...", "DEBUG KIOSK", MessageBoxButton.OK);
 
                 // 5. Iniciar watchdog para mantener ventana activa
                 StartWatchdog();
 
-                MessageBox.Show("KIOSK COMPLETAMENTE ACTIVADO!", "DEBUG KIOSK", MessageBoxButton.OK);
                 _logService.Information("=== MODO KIOSK ACTIVADO EXITOSAMENTE ===");
             }
             catch (Exception ex)
             {
                 _logService.Error(ex, "ERROR CRÍTICO al activar modo Kiosk");
-                MessageBox.Show($"ERROR CRÍTICO: {ex.Message}\n\nStack: {ex.StackTrace}",
-                               "ERROR KIOSK", MessageBoxButton.OK);
                 throw;
             }
         }
@@ -92,44 +85,56 @@ namespace MolcaEtiquetadoManual.Core.Services
         /// <summary>
         /// Configura la ventana principal para modo Kiosk
         /// </summary>
-        /// <summary>
-        /// Configura la ventana principal para modo Kiosk
-        /// </summary>
         private void ConfigureMainWindow(Window mainWindow)
         {
             try
             {
-                _logService.Information("Iniciando configuración de ventana para Kiosk...");
+                _logService.Information("Configurando ventana para modo Kiosk...");
 
-                // Paso 1: Configuraciones básicas
-                mainWindow.WindowStyle = WindowStyle.None;
-                mainWindow.ResizeMode = ResizeMode.NoResize;
-                mainWindow.Topmost = true;
+                // ✅ CONFIGURACIÓN MEJORADA
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // Configuraciones básicas
+                    mainWindow.WindowStyle = WindowStyle.None;
+                    mainWindow.ResizeMode = ResizeMode.NoResize;
+                    mainWindow.Topmost = true;
 
-                // Paso 2: Forzar dimensiones completas de pantalla
-                var screenWidth = SystemParameters.PrimaryScreenWidth;
-                var screenHeight = SystemParameters.PrimaryScreenHeight;
+                    // Obtener dimensiones de pantalla
+                    var screenWidth = SystemParameters.PrimaryScreenWidth;
+                    var screenHeight = SystemParameters.PrimaryScreenHeight;
 
-                mainWindow.Left = 0;
-                mainWindow.Top = 0;
-                mainWindow.Width = screenWidth;
-                mainWindow.Height = screenHeight;
+                    // Configurar posición y tamaño
+                    mainWindow.Left = 0;
+                    mainWindow.Top = 0;
+                    mainWindow.Width = screenWidth;
+                    mainWindow.Height = screenHeight;
 
-                // Paso 3: Maximizar después de configurar dimensiones
-                mainWindow.WindowState = WindowState.Maximized;
+                    // Maximizar
+                    mainWindow.WindowState = WindowState.Maximized;
 
-                // Paso 4: Usar API de Windows para asegurar que esté al frente
+                    _logService.Information("Ventana configurada: {Width}x{Height}", screenWidth, screenHeight);
+                });
+
+                // ✅ USAR API DE WINDOWS DESPUÉS DE QUE LA VENTANA ESTÉ CONFIGURADA
                 mainWindow.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
-                    if (hwnd != IntPtr.Zero)
+                    try
                     {
-                        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, (int)screenWidth, (int)screenHeight,
-                                   SWP_NOMOVE | SWP_NOSIZE);
-                    }
-                }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                        var hwnd = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
+                        if (hwnd != IntPtr.Zero)
+                        {
+                            var screenWidth = (int)SystemParameters.PrimaryScreenWidth;
+                            var screenHeight = (int)SystemParameters.PrimaryScreenHeight;
 
-                _logService.Information("Ventana configurada para Kiosk: {Width}x{Height}", screenWidth, screenHeight);
+                            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, screenWidth, screenHeight, SWP_NOMOVE | SWP_NOSIZE);
+                            _logService.Information("API de Windows aplicada correctamente");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Warning(ex, "Error al aplicar API de Windows, continuando...");
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
             }
             catch (Exception ex)
             {
@@ -151,6 +156,10 @@ namespace MolcaEtiquetadoManual.Core.Services
                 {
                     ShowWindow(taskbarHandle, SW_HIDE);
                     _logService.Information("Barra de tareas ocultada");
+                }
+                else
+                {
+                    _logService.Warning("No se pudo encontrar la barra de tareas");
                 }
 
                 // También ocultar botón de inicio si existe
@@ -191,7 +200,23 @@ namespace MolcaEtiquetadoManual.Core.Services
         /// </summary>
         private void SetupKeyInterceptor(Window mainWindow)
         {
-            mainWindow.KeyDown += (sender, e) =>
+            try
+            {
+                // Interceptor principal en la ventana
+                mainWindow.KeyDown += MainWindow_KeyDown;
+                mainWindow.PreviewKeyDown += MainWindow_PreviewKeyDown;
+
+                _logService.Information("Interceptor de teclas configurado");
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al configurar interceptor de teclas");
+            }
+        }
+
+        private void MainWindow_KeyDown(object sender, KeyEventArgs e)
+        {
+            try
             {
                 // Bloquear combinaciones de teclas peligrosas
                 if (ShouldBlockKey(e))
@@ -199,6 +224,7 @@ namespace MolcaEtiquetadoManual.Core.Services
                     e.Handled = true;
                     _logService.Debug("Combinación de teclas bloqueada: {Key} con modificadores: {Modifiers}",
                         e.Key, e.KeyboardDevice.Modifiers);
+                    return;
                 }
 
                 // Verificar salida de emergencia: Ctrl+Shift+Alt+F12
@@ -206,16 +232,29 @@ namespace MolcaEtiquetadoManual.Core.Services
                 {
                     HandleEmergencyExit();
                 }
-            };
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error en interceptor de teclas KeyDown");
+            }
+        }
 
-            // También interceptar a nivel de aplicación
-            Application.Current.MainWindow.PreviewKeyDown += (sender, e) =>
+        /// <summary>
+        /// Maneja el evento PreviewKeyDown de la ventana principal
+        /// </summary>
+        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            try
             {
                 if (ShouldBlockKey(e))
                 {
                     e.Handled = true;
                 }
-            };
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error en interceptor de teclas PreviewKeyDown");
+            }
         }
 
         /// <summary>
@@ -285,12 +324,19 @@ namespace MolcaEtiquetadoManual.Core.Services
         /// </summary>
         private void StartWatchdog()
         {
-            _watchdogTimer = new System.Windows.Threading.DispatcherTimer();
-            _watchdogTimer.Interval = TimeSpan.FromMilliseconds(500);
-            _watchdogTimer.Tick += WatchdogTimer_Tick;
-            _watchdogTimer.Start();
+            try
+            {
+                _watchdogTimer = new System.Windows.Threading.DispatcherTimer();
+                _watchdogTimer.Interval = TimeSpan.FromMilliseconds(500);
+                _watchdogTimer.Tick += WatchdogTimer_Tick;
+                _watchdogTimer.Start();
 
-            _logService.Debug("Watchdog iniciado - intervalo: 500ms");
+                _logService.Information("Watchdog iniciado - intervalo: 500ms");
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al iniciar watchdog");
+            }
         }
 
         /// <summary>
@@ -319,7 +365,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             }
             catch (Exception ex)
             {
-                _logService.Error(ex, "Error en watchdog timer");
+                _logService.Debug(ex, "Error menor en watchdog timer");
             }
         }
 
@@ -346,10 +392,13 @@ namespace MolcaEtiquetadoManual.Core.Services
                 // Restaurar ventana a modo normal
                 if (_mainWindow != null)
                 {
-                    _mainWindow.Topmost = false;
-                    _mainWindow.WindowStyle = WindowStyle.SingleBorderWindow;
-                    _mainWindow.WindowState = WindowState.Normal;
-                    _mainWindow.ResizeMode = ResizeMode.CanResize;
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _mainWindow.Topmost = false;
+                        _mainWindow.WindowStyle = WindowStyle.SingleBorderWindow;
+                        _mainWindow.WindowState = WindowState.Normal;
+                        _mainWindow.ResizeMode = ResizeMode.CanResize;
+                    });
                 }
 
                 _logService.Information("Modo Kiosk desactivado correctamente");
