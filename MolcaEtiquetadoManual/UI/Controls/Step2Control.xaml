@@ -72,10 +72,46 @@
 
                 <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
                     <TextBlock Text="Cantidad por Pallet" FontWeight="Medium"/>
-                    <TextBox x:Name="txtCantidadPallet" 
-                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                             PreviewTextInput="TxtCantidadPallet_PreviewTextInput"
-                             LostFocus="TxtCantidadPallet_LostFocus"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Campo de cantidad con indicador visual -->
+                        <TextBox x:Name="txtCantidadPallet" 
+                 Grid.Column="0"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 PreviewTextInput="TxtCantidadPallet_PreviewTextInput"
+                 TextChanged="TxtCantidadPallet_TextChanged"
+                 LostFocus="TxtCantidadPallet_LostFocus"
+                 ToolTip="Ingrese la cantidad de bultos por pallet (no puede exceder la cantidad original)"/>
+
+                        <!-- Indicador de límite máximo -->
+                        <StackPanel Grid.Column="1" 
+                    Orientation="Horizontal" 
+                    VerticalAlignment="Center"
+                    Margin="8,0,0,0">
+                            <materialDesign:PackIcon Kind="Information" 
+                                     Width="16" Height="16"
+                                     Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                     VerticalAlignment="Center"/>
+                            <TextBlock x:Name="txtMaxCantidad" 
+                       Text="Max: 0"
+                       FontSize="11"
+                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                       VerticalAlignment="Center"
+                       Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Mensaje de ayuda -->
+                    <TextBlock x:Name="txtAyudaCantidad"
+                           Text="Solo puede reducir la cantidad, no aumentarla"
+                           FontSize="10"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                           Margin="0,2,0,0"
+                           TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <!-- Fila 4 -->

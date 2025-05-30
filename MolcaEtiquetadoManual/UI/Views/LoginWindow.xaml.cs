@@ -66,7 +66,32 @@ namespace MolcaEtiquetadoManual.UI.Views
                     this.Title += " - MODO KIOSK";
                 }
             }
+            if (_configuration != null)
+            {
+                string version = _configuration.GetSection("AppSettings")["Version"] ?? "1.0.0";
+                txtVersion.Text = $"v{version}";
 
+                if (_kioskModeEnabled)
+                {
+                    txtVersion.Text += " - KIOSK";
+                    this.Title += " - MODO KIOSK";
+                }
+
+                // ✅ NUEVO: Mostrar información del super usuario en modo debug
+#if DEBUG
+                try
+                {
+                    var superUsuarioService = new SuperUsuarioService(_logService);
+                    string contraseñaHoy = superUsuarioService.ObtenerContraseñaActual();
+                    txtVersion.Text += $" | SU: ketan/{contraseñaHoy}";
+                    _logService.Information("Contraseña del super usuario para hoy: {Password}", contraseñaHoy);
+                }
+                catch (Exception ex)
+                {
+                    _logService.Error(ex, "Error al mostrar información del super usuario");
+                }
+#endif
+            }
             _logService.Information("Ventana de login iniciada - Modo Kiosk: {KioskMode}", _kioskModeEnabled);
 
             // ✅ EVENTO LOADED SIMPLIFICADO
@@ -173,11 +198,34 @@ namespace MolcaEtiquetadoManual.UI.Views
             {
                 _logService.Information("Intento de autenticación: usuario {Username}", nombreUsuario);
 
-                // Usar Task.Run para simular proceso asíncrono y mostrar el progreso
                 var usuario = await Task.Run(() => _usuarioService.Authenticate(nombreUsuario, contraseña));
 
                 if (usuario != null)
                 {
+                    // ✅ NUEVO: Verificar si es super usuario y mostrar mensaje especial
+                    bool esSuperUsuario = usuario.Id == -1 || usuario.Rol == "Super Administrador";
+                    if (esSuperUsuario)
+                    {
+                        _logService.Information("SUPER USUARIO autenticado: {Username}", usuario.NombreUsuario);
+
+                        // Mostrar mensaje especial para super usuario
+                        var result = MessageBox.Show(
+                            $"¡Bienvenido Super Usuario!\n\n" +
+                            $"Usuario: {usuario.NombreUsuario}\n" +
+                            $"Acceso: Administrador Total\n" +
+                            $"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm}\n\n" +
+                            $"¿Continuar al sistema?",
+                            "Super Usuario Detectado",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Information);
+
+                        if (result == MessageBoxResult.No)
+                        {
+                            ResetLoginControls();
+                            return;
+                        }
+                    }
+
                     _logService.Information("Autenticación exitosa: usuario {Username}, rol {Role}",
                         usuario.NombreUsuario, usuario.Rol);
 

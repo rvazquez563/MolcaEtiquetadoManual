@@ -148,6 +148,21 @@ namespace MolcaEtiquetadoManual.UI.Controls
         #endregion
 
         #region Métodos Privados
+
+        private void ActualizarIndicadoresCantidad()
+        {
+            if (_currentOrden != null && txtMaxCantidad != null)
+            {
+                // Actualizar el indicador de cantidad máxima
+                txtMaxCantidad.Text = $"Max: {_originalCantidadPorPallet}";
+
+                // Actualizar mensaje de ayuda
+                if (txtAyudaCantidad != null)
+                {
+                    txtAyudaCantidad.Text = $"Cantidad original: {_originalCantidadPorPallet}. Solo puede reducir la cantidad, no aumentarla.";
+                }
+            }
+        }
         private void ActualizarDatos()
         {
             if (_currentOrden == null)
@@ -161,6 +176,9 @@ namespace MolcaEtiquetadoManual.UI.Controls
             txtDescripcion.Text = _currentOrden.Descripcion;
             txtCantidadPallet.Text = _cantidadModificada.ToString();
             txtProgramaProduccion.Text = _currentOrden.ProgramaProduccion;
+
+            // ✅ NUEVO: Actualizar indicadores de cantidad
+            ActualizarIndicadoresCantidad();
 
             // Formato de fecha para el lote: DDMMYY
             string fechaFormateada = fechaProduccion.ToString("ddMMyy");
@@ -874,28 +892,149 @@ namespace MolcaEtiquetadoManual.UI.Controls
         private void TxtCantidadPallet_LostFocus(object sender, RoutedEventArgs e)
         {
             // Validar y actualizar la cantidad cuando el campo pierde el foco
-            if (int.TryParse(txtCantidadPallet.Text, out int cantidad) && cantidad > 0)
+            if (int.TryParse(txtCantidadPallet.Text, out int cantidad))
             {
-                // Si la cantidad ha cambiado respecto a la original
+                //  No permitir cantidad mayor a la original
+                if (cantidad > _originalCantidadPorPallet)
+                {
+                    MessageBox.Show(
+                        $"La cantidad por pallet no puede ser mayor a la cantidad original.\n\n" +
+                        $"Cantidad original: {_originalCantidadPorPallet}\n" +
+                        $"Cantidad ingresada: {cantidad}\n\n" +
+                        $"Se restaurará la cantidad original.",
+                        "Cantidad Excedida",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    // Restaurar la cantidad original
+                    txtCantidadPallet.Text = _originalCantidadPorPallet.ToString();
+                    _cantidadModificada = _originalCantidadPorPallet;
+
+                    // Registrar el intento
+                    _logService.Warning("Intento de exceder cantidad original: {CantidadIngresada} > {CantidadOriginal}",
+                        cantidad, _originalCantidadPorPallet);
+                    ActivityLog?.Invoke($"Cantidad rechazada: {cantidad} excede el máximo permitido de {_originalCantidadPorPallet}",
+                        ActivityLogItem.LogLevel.Warning);
+
+                    return;
+                }
+
+                //  Cantidad debe ser mayor a 0
+                if (cantidad <= 0)
+                {
+                    MessageBox.Show(
+                        "La cantidad por pallet debe ser mayor a 0.",
+                        "Cantidad Inválida",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    // Restaurar la cantidad modificada actual
+                    txtCantidadPallet.Text = _cantidadModificada.ToString();
+                    ActivityLog?.Invoke("Cantidad inválida: debe ser mayor a 0", ActivityLogItem.LogLevel.Warning);
+                    return;
+                }
+
+                // Si la cantidad ha cambiado respecto a la actual
                 if (_cantidadModificada != cantidad)
                 {
-                    // Actualizar la cantidad modificada (NO la orden original)
+                    // Actualizar la cantidad modificada
                     _cantidadModificada = cantidad;
 
                     // Registrar el cambio
-                    _logService.Information("Cantidad por pallet modificada a: {Cantidad}", cantidad);
-                    ActivityLog?.Invoke($"Cantidad por pallet modificada a: {cantidad}", ActivityLogItem.LogLevel.Info);
+                    if (cantidad < _originalCantidadPorPallet)
+                    {
+                        _logService.Information("Cantidad por pallet reducida de {Original} a {Nueva}",
+                            _originalCantidadPorPallet, cantidad);
+                        ActivityLog?.Invoke($"Cantidad reducida de {_originalCantidadPorPallet} a {cantidad}",
+                            ActivityLogItem.LogLevel.Info);
+                    }
+                    else if (cantidad == _originalCantidadPorPallet)
+                    {
+                        _logService.Information("Cantidad por pallet restaurada al valor original: {Cantidad}", cantidad);
+                        ActivityLog?.Invoke($"Cantidad restaurada al valor original: {cantidad}",
+                            ActivityLogItem.LogLevel.Info);
+                    }
 
                     // Actualizar la vista previa
-                    var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
-                    GenerarVistaPreliminar(turnoActual, fechaProduccion);
+                    try
+                    {
+                        var (turnoActual, fechaProduccion) = _turnoService.ObtenerTurnoYFechaProduccion();
+                        GenerarVistaPreliminar(turnoActual, fechaProduccion);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Error(ex, "Error al actualizar vista previa después de cambio de cantidad");
+                    }
                 }
             }
             else
             {
                 // Si el valor no es válido, restaurar el valor modificado actual
                 txtCantidadPallet.Text = _cantidadModificada.ToString();
-                ActivityLog?.Invoke("Cantidad por pallet inválida, se restauró el valor actual", ActivityLogItem.LogLevel.Warning);
+                ActivityLog?.Invoke("Formato de cantidad inválido, se restauró el valor actual", ActivityLogItem.LogLevel.Warning);
+            }
+        }
+        private void TxtCantidadPallet_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var textBox = sender as TextBox;
+            if (textBox != null && !string.IsNullOrEmpty(textBox.Text))
+            {
+                if (int.TryParse(textBox.Text, out int cantidad))
+                {
+                    // Mostrar advertencia visual si excede el máximo
+                    if (cantidad > _originalCantidadPorPallet)
+                    {
+                        textBox.Background = new SolidColorBrush(Color.FromRgb(255, 230, 230)); // Fondo rojizo claro
+                        textBox.BorderBrush = new SolidColorBrush(Colors.Red);
+                        textBox.ToolTip = $"Cantidad máxima permitida: {_originalCantidadPorPallet}";
+
+                        // Mostrar mensaje en el área de ayuda
+                        if (txtAyudaCantidad != null)
+                        {
+                            txtAyudaCantidad.Text = $"⚠️ ADVERTENCIA: La cantidad {cantidad} excede el máximo permitido de {_originalCantidadPorPallet}";
+                            txtAyudaCantidad.Foreground = new SolidColorBrush(Colors.Red);
+                        }
+                    }
+                    else if (cantidad <= 0)
+                    {
+                        textBox.Background = new SolidColorBrush(Color.FromRgb(255, 240, 200)); // Fondo amarillento
+                        textBox.BorderBrush = new SolidColorBrush(Colors.Orange);
+                        textBox.ToolTip = "La cantidad debe ser mayor a 0";
+
+                        if (txtAyudaCantidad != null)
+                        {
+                            txtAyudaCantidad.Text = "⚠️ La cantidad debe ser mayor a 0";
+                            txtAyudaCantidad.Foreground = new SolidColorBrush(Colors.Orange);
+                        }
+                    }
+                    else
+                    {
+                        // Cantidad válida
+                        textBox.Background = SystemColors.WindowBrush; // Fondo normal
+                        textBox.BorderBrush = new SolidColorBrush(Colors.Gray);
+                        textBox.ToolTip = null;
+
+                        if (txtAyudaCantidad != null)
+                        {
+                            txtAyudaCantidad.Text = $"Cantidad original: {_originalCantidadPorPallet}. Solo puede reducir la cantidad, no aumentarla.";
+                            txtAyudaCantidad.Foreground = new SolidColorBrush(Colors.Gray);
+                        }
+                    }
+                }
+                else
+                {
+                    // Texto no numérico
+                    textBox.Background = new SolidColorBrush(Color.FromRgb(255, 240, 200));
+                    textBox.BorderBrush = new SolidColorBrush(Colors.Orange);
+                    textBox.ToolTip = "Ingrese solo números";
+                }
+            }
+            else
+            {
+                // Campo vacío
+                textBox.Background = SystemColors.WindowBrush;
+                textBox.BorderBrush = new SolidColorBrush(Colors.Gray);
+                textBox.ToolTip = null;
             }
         }
         #endregion

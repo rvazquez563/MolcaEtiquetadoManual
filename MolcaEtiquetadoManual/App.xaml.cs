@@ -55,6 +55,7 @@ namespace MolcaEtiquetadoManual
             }
         }
 
+        
         private void ConfigureServices(ServiceCollection services)
         {
             // Agregar Serilog a los servicios
@@ -65,6 +66,9 @@ namespace MolcaEtiquetadoManual
             services.AddSingleton<ILogService, LogService>();
 
             services.AddSingleton(Configuration);
+
+            // ✅ NUEVO: Registrar servicio de super usuario
+            services.AddSingleton<ISuperUsuarioService, SuperUsuarioService>();
 
             // Registrar servicio de fechas julianas
             services.AddSingleton<IJulianDateService, JulianDateService>();
@@ -81,8 +85,16 @@ namespace MolcaEtiquetadoManual
             services.AddTransient<EtiquetadoRepository>();
             services.AddTransient<LineaProduccionRepository>();
 
-            // Registrar servicios
-            services.AddTransient<IUsuarioService, UsuarioService>();
+            // ✅ MODIFICADO: Registrar servicios con el super usuario incluido
+            services.AddTransient<IUsuarioService>(serviceProvider =>
+            {
+                var repository = serviceProvider.GetRequiredService<UsuarioRepository>();
+                var logService = serviceProvider.GetRequiredService<ILogService>();
+                var superUsuarioService = serviceProvider.GetRequiredService<ISuperUsuarioService>();
+
+                return new UsuarioService(repository, logService, superUsuarioService);
+            });
+
             services.AddTransient<IEtiquetadoService, EtiquetadoService>();
             services.AddTransient<ITurnoService, TurnoService>();
             services.AddTransient<ILineaProduccionService, LineaProduccionService>();
@@ -93,26 +105,24 @@ namespace MolcaEtiquetadoManual
             // Registrar servicio de vista previa de etiquetas
             services.AddSingleton<IEtiquetaPreviewService, EtiquetaPreviewService>();
 
-            // ✅ REGISTRAR KIOSKMANAGER SIEMPRE (no solo si está habilitado)
+            // ✅ REGISTRO DE KIOSKMANAGER (sin cambios)
             services.AddSingleton<KioskManager>(sp =>
             {
                 var logService = sp.GetRequiredService<ILogService>();
                 return new KioskManager(logService);
             });
 
-            // Configurar servicio de impresión
+            // Configurar servicio de impresión (sin cambios)
             var useMockPrinter = Configuration.GetSection("PrinterSettings").GetValue<bool>("UseMockPrinter");
 
             if (useMockPrinter)
             {
-                // Usar la versión de prueba del servicio de impresión
                 services.AddSingleton<IPrintService>(sp =>
                     new TestPrintService(sp.GetRequiredService<ILogService>(), Configuration));
                 Log.Information("Utilizando servicio de impresión para PRUEBAS");
             }
             else
             {
-                // Usar el servicio real de impresión
                 services.AddSingleton<IPrintService>(sp =>
                     new ZebraPrintService(Configuration, sp.GetRequiredService<ILogService>()));
                 Log.Information("Utilizando servicio de impresión REAL para Zebra");

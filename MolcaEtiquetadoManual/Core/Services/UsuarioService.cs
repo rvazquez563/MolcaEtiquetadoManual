@@ -1,6 +1,4 @@
-﻿// Core/Services/UsuarioService.cs
-// Actualizar la clase UsuarioService para agregar los métodos de gestión de usuarios
-
+﻿// Core/Services/UsuarioService.cs - Versión modificada
 using MolcaEtiquetadoManual.Core.Interfaces;
 using MolcaEtiquetadoManual.Core.Models;
 using MolcaEtiquetadoManual.Data.Repositories;
@@ -12,29 +10,75 @@ namespace MolcaEtiquetadoManual.Core.Services
     {
         private readonly UsuarioRepository _repository;
         private readonly ILogService _logService;
+        private readonly ISuperUsuarioService _superUsuarioService; // ✅ NUEVO
 
-        public UsuarioService(UsuarioRepository repository, ILogService logService = null)
+        public UsuarioService(UsuarioRepository repository, ILogService logService = null, ISuperUsuarioService superUsuarioService = null)
         {
             _repository = repository;
             _logService = logService;
+            _superUsuarioService = superUsuarioService; // ✅ NUEVO
         }
 
         public Usuario Authenticate(string nombreUsuario, string contraseña)
         {
-            var usuario = _repository.GetByCredentials(nombreUsuario, contraseña);
-
-            if (usuario != null && _logService != null)
+            try
             {
-                _logService.Information("Autenticación exitosa para usuario: {Username}", nombreUsuario);
-            }
-            else if (_logService != null)
-            {
-                _logService.Warning("Intento fallido de autenticación para usuario: {Username}", nombreUsuario);
-            }
+                // ✅ NUEVA LÓGICA: Primero verificar si es el super usuario
+                if (_superUsuarioService != null && _superUsuarioService.EsSuperUsuario(nombreUsuario))
+                {
+                    var superUsuario = _superUsuarioService.ValidarSuperUsuario(nombreUsuario, contraseña);
+                    if (superUsuario != null)
+                    {
+                        _logService?.Information("Autenticación exitosa para SUPER USUARIO: {Username}", nombreUsuario);
+                        return superUsuario;
+                    }
+                    else
+                    {
+                        _logService?.Warning("Intento fallido de autenticación para super usuario: {Username}", nombreUsuario);
+                        return null;
+                    }
+                }
 
-            return usuario;
+                // Lógica original para usuarios normales
+                var usuario = _repository.GetByCredentials(nombreUsuario, contraseña);
+
+                if (usuario != null && _logService != null)
+                {
+                    _logService.Information("Autenticación exitosa para usuario: {Username}", nombreUsuario);
+                }
+                else if (_logService != null)
+                {
+                    _logService.Warning("Intento fallido de autenticación para usuario: {Username}", nombreUsuario);
+                }
+
+                return usuario;
+            }
+            catch (System.Exception ex)
+            {
+                _logService?.Error(ex, "Error durante la autenticación del usuario: {Username}", nombreUsuario);
+                return null;
+            }
         }
 
+        // ✅ NUEVO MÉTODO: Verificar si un usuario es super usuario
+        public bool EsSuperUsuario(Usuario usuario)
+        {
+            return usuario != null &&
+                   _superUsuarioService != null &&
+                   _superUsuarioService.EsSuperUsuario(usuario.NombreUsuario);
+        }
+
+        // ✅ NUEVO MÉTODO: Obtener información del super usuario para mostrar en UI
+        public string ObtenerInfoSuperUsuario()
+        {
+            if (_superUsuarioService != null)
+            {
+                return $"Super Usuario: ketan | Contraseña hoy: {_superUsuarioService.ObtenerContraseñaActual()}";
+            }
+            return "Super Usuario no disponible";
+        }
+
+        // Métodos existentes sin cambios
         public List<Usuario> GetAllUsuarios()
         {
             return _repository.GetAll();
@@ -86,6 +130,12 @@ namespace MolcaEtiquetadoManual.Core.Services
 
         public bool ExisteNombreUsuario(string nombreUsuario, int? idExcluir = null)
         {
+            // ✅ NUEVA VALIDACIÓN: No permitir crear usuarios con el nombre del super usuario
+            if (_superUsuarioService != null && _superUsuarioService.EsSuperUsuario(nombreUsuario))
+            {
+                return true; // Consideramos que "existe" para evitar su creación
+            }
+
             var usuario = _repository.GetByNombreUsuario(nombreUsuario);
 
             // Si el usuario existe y no es el que estamos excluyendo (para edición)

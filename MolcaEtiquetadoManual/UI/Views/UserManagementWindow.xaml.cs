@@ -173,6 +173,16 @@ namespace MolcaEtiquetadoManual.UI.Views
                 return;
             }
 
+            string nombreUsuario = txtNombreUsuario.Text.Trim();
+
+            // ✅ NUEVA VALIDACIÓN: Verificar que no sea el nombre del super usuario
+            if (nombreUsuario.Equals("ketan", StringComparison.OrdinalIgnoreCase))
+            {
+                txtError.Text = "No se puede crear un usuario con el nombre 'ketan' (reservado para super usuario)";
+                txtNombreUsuario.Focus();
+                return;
+            }
+
             // Si es nuevo o se desea cambiar la contraseña
             if (!_isEditing || !string.IsNullOrEmpty(txtContraseña.Password))
             {
@@ -207,19 +217,16 @@ namespace MolcaEtiquetadoManual.UI.Views
 
             try
             {
-                string nombreUsuario = txtNombreUsuario.Text.Trim();
                 string rol = ((ComboBoxItem)cmbRol.SelectedItem).Content.ToString();
                 bool activo = chkActivo.IsChecked ?? true;
 
                 // Verificar si el nombre de usuario ya existe (solo para nuevos usuarios)
                 if (!_isEditing)
                 {
-                    var usuarioExistente = Usuarios.FirstOrDefault(u =>
-                        u.NombreUsuario.Equals(nombreUsuario, StringComparison.OrdinalIgnoreCase));
-
-                    if (usuarioExistente != null)
+                    // ✅ ESTA VALIDACIÓN AHORA INCLUYE LA VERIFICACIÓN DEL SUPER USUARIO
+                    if (_usuarioService.ExisteNombreUsuario(nombreUsuario))
                     {
-                        txtError.Text = "El nombre de usuario ya existe";
+                        txtError.Text = "El nombre de usuario ya existe o está reservado";
                         txtNombreUsuario.Focus();
                         return;
                     }
@@ -264,7 +271,6 @@ namespace MolcaEtiquetadoManual.UI.Views
                     // Crear nuevo usuario
                     var nuevoUsuario = new Usuario
                     {
-                        //Id = Usuarios.Count > 0 ? Usuarios.Max(u => u.Id) + 1 : 1, // Simular autoincremento
                         NombreUsuario = nombreUsuario,
                         Contraseña = txtContraseña.Password,
                         Rol = rol,
