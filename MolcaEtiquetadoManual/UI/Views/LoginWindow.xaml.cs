@@ -51,7 +51,8 @@ namespace MolcaEtiquetadoManual.UI.Views
             _configuration = configuration;
             _kioskManager = kioskManager;
 
-            // ✅ LEER CORRECTAMENTE EL MODO KIOSK
+            // ✅ LEER CORRECTAMENTE EL
+            // 
             _kioskModeEnabled = _configuration?.GetSection("KioskSettings").GetValue<bool>("Enabled", false) ?? false;
 
             // Cargar versión desde configuración
@@ -83,7 +84,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                 {
                     var superUsuarioService = new SuperUsuarioService(_logService);
                     string contraseñaHoy = superUsuarioService.ObtenerContraseñaActual();
-                    txtVersion.Text += $" | SU: ketan/{contraseñaHoy}";
+                    txtVersion.Text += $" | SU: ketan";
                     _logService.Information("Contraseña del super usuario para hoy: {Password}", contraseñaHoy);
                 }
                 catch (Exception ex)

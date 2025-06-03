@@ -52,11 +52,11 @@ namespace MolcaEtiquetadoManual.Migrations
                 {
                     ID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    EDUS = table.Column<string>(type: "nvarchar(max)", maxLength: 4, nullable: false),
+                    EDUS = table.Column<string>(type: "nvarchar(max)",  nullable: false),
                     EDDT = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EDTN = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EDLN = table.Column<int>(type: "int", nullable: false),
-                    DOCO = table.Column<string>(type: "nvarchar(max)", maxLength: 6, nullable: false),
+                    DOCO = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LITM = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SOQS = table.Column<int>(type: "int", nullable: false),
                     UOM = table.Column<string>(type: "nvarchar(max)", nullable: false),

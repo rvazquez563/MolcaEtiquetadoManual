@@ -125,7 +125,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                         
             if (_kioskModeEnabled)
             {
-                AddActivityLogItem("MODO KIOSK ACTIVADO - Presione Ctrl+Shift+Alt+F12 para salida de emergencia", ActivityLogItem.LogLevel.Warning);
+                AddActivityLogItem("MODO KIOSK ACTIVADO - Pongase en contacto con soporte si desea salir", ActivityLogItem.LogLevel.Warning);
             }
 
             AddActivityLogItem("Escanee un código DUN-14 para comenzar", ActivityLogItem.LogLevel.Info);
