@@ -1,4 +1,4 @@
-﻿// UI/Views/LoginWindow.xaml.cs
+﻿// UI/Views/LoginWindow.xaml.cs - CORREGIDO
 using System;
 using System.Threading.Tasks;
 using System.Windows;
@@ -25,6 +25,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly KioskManager _kioskManager;
         private readonly bool _kioskModeEnabled;
         private bool _isNormalClose = false;
+
         public LoginWindow(IUsuarioService usuarioService,
                          IEtiquetadoService etiquetadoService,
                          IPrintService printService,
@@ -51,8 +52,6 @@ namespace MolcaEtiquetadoManual.UI.Views
             _configuration = configuration;
             _kioskManager = kioskManager;
 
-            // ✅ LEER CORRECTAMENTE EL
-            // 
             _kioskModeEnabled = _configuration?.GetSection("KioskSettings").GetValue<bool>("Enabled", false) ?? false;
 
             // Cargar versión desde configuración
@@ -66,19 +65,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                     txtVersion.Text += " - KIOSK";
                     this.Title += " - MODO KIOSK";
                 }
-            }
-            if (_configuration != null)
-            {
-                string version = _configuration.GetSection("AppSettings")["Version"] ?? "1.0.0";
-                txtVersion.Text = $"v{version}";
 
-                if (_kioskModeEnabled)
-                {
-                    txtVersion.Text += " - KIOSK";
-                    this.Title += " - MODO KIOSK";
-                }
-
-                // ✅ NUEVO: Mostrar información del super usuario en modo debug
 #if DEBUG
                 try
                 {
@@ -93,18 +80,16 @@ namespace MolcaEtiquetadoManual.UI.Views
                 }
 #endif
             }
+
             _logService.Information("Ventana de login iniciada - Modo Kiosk: {KioskMode}", _kioskModeEnabled);
 
-            // ✅ EVENTO LOADED SIMPLIFICADO
             Loaded += LoginWindow_Loaded_Event;
         }
 
         private void LoginWindow_Loaded_Event(object sender, RoutedEventArgs e)
         {
-            // Enfocar campo de usuario
             txtUsername.Focus();
 
-            // Si modo Kiosk está habilitado, activarlo
             if (_kioskModeEnabled && _kioskManager != null)
             {
                 try
@@ -120,23 +105,16 @@ namespace MolcaEtiquetadoManual.UI.Views
                                    "Error Kiosk", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
-            else
-            {
-                _logService.Information("Modo Kiosk no activado - Habilitado: {Enabled}, Manager disponible: {ManagerAvailable}",
-                                      _kioskModeEnabled, _kioskManager != null);
-            }
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            // Si es un cierre normal (login exitoso), no preguntar
             if (_isNormalClose)
             {
                 base.OnClosing(e);
                 return;
             }
 
-            // Solo preguntar si es un cierre manual en modo Kiosk
             if (_kioskModeEnabled)
             {
                 var result = MessageBox.Show(
@@ -152,7 +130,6 @@ namespace MolcaEtiquetadoManual.UI.Views
                 }
                 else
                 {
-                    // Usuario confirmó el cierre, deshabilitar Kiosk
                     if (_kioskManager != null)
                     {
                         _kioskManager.DisableKioskMode();
@@ -179,7 +156,6 @@ namespace MolcaEtiquetadoManual.UI.Views
 
         private async void Login()
         {
-            // Mostrar indicador de carga
             loginProgressBar.Visibility = Visibility.Visible;
             btnLogin.IsEnabled = false;
             txtError.Text = string.Empty;
@@ -203,13 +179,11 @@ namespace MolcaEtiquetadoManual.UI.Views
 
                 if (usuario != null)
                 {
-                    // ✅ NUEVO: Verificar si es super usuario y mostrar mensaje especial
                     bool esSuperUsuario = usuario.Id == -1 || usuario.Rol == "Super Administrador";
                     if (esSuperUsuario)
                     {
                         _logService.Information("SUPER USUARIO autenticado: {Username}", usuario.NombreUsuario);
 
-                        // Mostrar mensaje especial para super usuario
                         var result = MessageBox.Show(
                             $"¡Bienvenido Super Usuario!\n\n" +
                             $"Usuario: {usuario.NombreUsuario}\n" +
@@ -230,24 +204,59 @@ namespace MolcaEtiquetadoManual.UI.Views
                     _logService.Information("Autenticación exitosa: usuario {Username}, rol {Role}",
                         usuario.NombreUsuario, usuario.Rol);
 
+                    // ✅ CAMBIO IMPORTANTE: Marcar como cierre normal ANTES de crear el MainWindow
                     _isNormalClose = true;
 
-                    var mainWindow = new MainWindow(
-                        usuario,
-                        _etiquetadoService,
-                        _usuarioService,
-                        _printService,
-                        _turnoService,
-                        _logService,
-                        _etiquetaPreviewService,
-                        _lineaService,
-                        _barcodeService,
-                        _julianDateService,
-                        _configuration,
-                        _kioskManager);
+                    // ✅ CAMBIO IMPORTANTE: Ocultar el LoginWindow inmediatamente
+                    this.Hide();
 
-                    mainWindow.Show();
-                    this.Close();
+                    try
+                    {
+                        // Crear MainWindow
+                        var mainWindow = new MainWindow(
+                            usuario,
+                            _etiquetadoService,
+                            _usuarioService,
+                            _printService,
+                            _turnoService,
+                            _logService,
+                            _etiquetaPreviewService,
+                            _lineaService,
+                            _barcodeService,
+                            _julianDateService,
+                            _configuration,
+                            _kioskManager);
+
+                        // ✅ CAMBIO IMPORTANTE: Configurar MainWindow para pantalla completa ANTES de mostrarlo
+                        if (_kioskModeEnabled)
+                        {
+                            mainWindow.WindowState = WindowState.Maximized;
+                            mainWindow.WindowStyle = WindowStyle.None;
+                            mainWindow.Topmost = true;
+                        }
+                        else
+                        {
+                            mainWindow.WindowState = WindowState.Maximized;
+                        }
+
+                        // ✅ CAMBIO IMPORTANTE: Asegurar que se muestre al frente
+                        mainWindow.Show();
+                        mainWindow.Activate();
+                        mainWindow.Focus();
+
+                        // ✅ CAMBIO IMPORTANTE: Cerrar LoginWindow después de que MainWindow esté visible
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            this.Close();
+                        }), System.Windows.Threading.DispatcherPriority.Background);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logService.Error(ex, "Error al crear MainWindow");
+                        this.Show(); // Volver a mostrar LoginWindow si hay error
+                        txtError.Text = $"Error al abrir ventana principal: {ex.Message}";
+                        ResetLoginControls();
+                    }
                 }
                 else
                 {

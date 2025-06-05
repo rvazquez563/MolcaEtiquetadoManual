@@ -68,7 +68,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             // Configuración de Kiosk
             _kioskManager = kioskManager;
             _kioskModeEnabled = _configuration?.GetSection("KioskSettings").GetValue<bool>("Enabled", false) ?? false;
-
+            ConfigureFullScreenMode();
             // Si el modo Kiosk está habilitado, configurar la ventana
             if (_kioskModeEnabled && _kioskManager != null)
             {
@@ -132,18 +132,42 @@ namespace MolcaEtiquetadoManual.UI.Views
         }
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            if (_kioskModeEnabled && _kioskManager != null)
+            try
             {
-                try
+                // Asegurar que la ventana esté al frente
+                this.Activate();
+                this.Focus();
+                this.BringIntoView();
+
+                if (_kioskModeEnabled && _kioskManager != null)
                 {
-                    _kioskManager.EnableKioskMode(this);
-                    _logService.Information("Modo Kiosk activado en ventana principal");
+                    _logService.Information("Activando modo Kiosk en ventana principal");
+
+                    // Pequeña demora para asegurar que la ventana esté completamente cargada
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            _kioskManager.EnableKioskMode(this);
+
+                            // Forzar que la ventana esté al frente
+                            this.Topmost = true;
+                            this.Activate();
+                            this.Focus();
+
+                            _logService.Information("Modo Kiosk activado exitosamente en ventana principal");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logService.Error(ex, "Error al activar modo Kiosk en ventana principal");
+                            AddActivityLogItem("Error al activar modo Kiosk", ActivityLogItem.LogLevel.Error);
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Loaded);
                 }
-                catch (Exception ex)
-                {
-                    _logService.Error(ex, "Error al activar modo Kiosk en ventana principal");
-                    AddActivityLogItem("Error al activar modo Kiosk", ActivityLogItem.LogLevel.Error);
-                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error en MainWindow_Loaded");
             }
         }
 
@@ -224,6 +248,12 @@ namespace MolcaEtiquetadoManual.UI.Views
                 {
                     // En modo Kiosk, agregar indicador visual
                     this.Title += " - MODO KIOSK";
+
+                    // Asegurar configuración de pantalla completa
+                    this.WindowStyle = WindowStyle.None;
+                    this.ResizeMode = ResizeMode.NoResize;
+                    this.Topmost = true;
+
                     _logService.Information("Interfaz configurada para modo Kiosk");
                 }
             }
@@ -347,6 +377,41 @@ namespace MolcaEtiquetadoManual.UI.Views
             {
                 _logService.Error(ex, "Error al inicializar controles de pasos");
                 MessageBox.Show($"Error al inicializar la aplicación: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ConfigureFullScreenMode()
+        {
+            try
+            {
+                if (_kioskModeEnabled)
+                {
+                    // Configuración específica para modo Kiosk
+                    this.WindowStyle = WindowStyle.None;
+                    this.WindowState = WindowState.Maximized;
+                    this.ResizeMode = ResizeMode.NoResize;
+                    this.Topmost = true;
+
+                    // Asegurar que cubra toda la pantalla
+                    this.Left = 0;
+                    this.Top = 0;
+                    this.Width = SystemParameters.PrimaryScreenWidth;
+                    this.Height = SystemParameters.PrimaryScreenHeight;
+
+                    _logService.Information("MainWindow configurado para modo Kiosk pantalla completa");
+                }
+                else
+                {
+                    // Modo normal pero maximizado
+                    this.WindowState = WindowState.Maximized;
+                    this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+
+                    _logService.Information("MainWindow configurado en modo normal maximizado");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al configurar pantalla completa");
             }
         }
 
