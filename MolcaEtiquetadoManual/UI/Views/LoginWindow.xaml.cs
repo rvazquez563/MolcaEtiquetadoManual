@@ -208,7 +208,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                     _isNormalClose = true;
 
                     // ✅ CAMBIO IMPORTANTE: Ocultar el LoginWindow inmediatamente
-                    this.Hide();
+                    this.Close();
 
                     try
                     {
@@ -225,7 +225,7 @@ namespace MolcaEtiquetadoManual.UI.Views
                             _barcodeService,
                             _julianDateService,
                             _configuration,
-                            _kioskManager);
+                            _kioskManager,this);
 
                         // ✅ CAMBIO IMPORTANTE: Configurar MainWindow para pantalla completa ANTES de mostrarlo
                         if (_kioskModeEnabled)

@@ -23,6 +23,7 @@ namespace MolcaEtiquetadoManual.UI.Views
         private readonly IConfiguration _configuration;
         private readonly IEtiquetaPreviewService _etiquetaPreviewService; 
         private readonly ILineaProduccionService _lineaService;
+        private LoginWindow _loginWindow;
         private readonly Usuario _currentUser;
         private bool enciclo = false;
         private bool _isSessionCloseRequested = false;
@@ -47,7 +48,8 @@ namespace MolcaEtiquetadoManual.UI.Views
                         IBarcodeService barcodeService = null,
                         IJulianDateService julianDateService = null,
                         IConfiguration configuration = null,
-                        KioskManager kioskManager = null)
+                        KioskManager kioskManager = null,
+                        LoginWindow loginWindow = null)
         {
             InitializeComponent();
             this.Closing += MainWindow_Closing;
@@ -60,7 +62,7 @@ namespace MolcaEtiquetadoManual.UI.Views
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _etiquetaPreviewService = etiquetaPreviewService ?? throw new ArgumentNullException(nameof(etiquetaPreviewService));
             _lineaService = lineaService ?? throw new ArgumentNullException(nameof(lineaService));
-
+            _loginWindow = loginWindow ?? throw new ArgumentNullException(nameof(loginWindow));   
             // Estos pueden ser opcionales, así que no lanzamos excepciones
             _barcodeService = barcodeService;
             _julianDateService = julianDateService;
@@ -200,29 +202,41 @@ namespace MolcaEtiquetadoManual.UI.Views
                     _isSessionCloseRequested = true;
 
                     // Crear nueva ventana de login con Kiosk habilitado
-                    var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
-                                                    _turnoService, _logService, _etiquetaPreviewService,
-                                                    _lineaService, _barcodeService, _julianDateService,
-                                                    _configuration, _kioskManager);
+                    //var loginWindow = new LoginWindow(_usuarioService, _etiquetadoService, _printService,
+                    //                                _turnoService, _logService, _etiquetaPreviewService,
+                    //                                _lineaService, _barcodeService, _julianDateService,
+                    //                                _configuration, _kioskManager);
 
                     // Configurar Kiosk en la nueva ventana de login
-                    if (_kioskManager != null)
+                    if (_kioskModeEnabled)
                     {
-                        loginWindow.Loaded += (s, ev) =>
-                        {
-                            try
-                            {
-                                _kioskManager.EnableKioskMode(loginWindow);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logService.Error(ex, "Error al reactivar Kiosk en nueva ventana de login");
-                            }
-                        };
+                        _loginWindow.WindowState = WindowState.Maximized;
+                        _loginWindow.WindowStyle = WindowStyle.None;
+                        _loginWindow.Topmost = true;
                     }
+                    else
+                    {
+                        _loginWindow.WindowState = WindowState.Maximized;
+                    }
+                    _loginWindow.loginProgressBar.Visibility = Visibility.Collapsed;
+                    _loginWindow.btnLogin.IsEnabled = true;
+                    //_loginWindow.txtError.Text = Visibility.Collapsed;
 
-                    loginWindow.Show();
-                    this.Close(); // Ahora no preguntará
+                    _loginWindow.txtUsername.Text=string.Empty;
+                    _loginWindow.txtPassword.Password = string.Empty;
+                    _loginWindow.Show();
+                    _loginWindow.Activate();
+                    _loginWindow.Focus();
+
+                    // ✅ CAMBIO IMPORTANTE: Cerrar LoginWindow después de que MainWindow esté visible
+                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        this.Close();
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+
+                    _loginWindow.Show();
+                    //this.Close(); // Ahora no preguntará
+                    this.Hide(); // Ocultar la ventana actual en lugar de cerrarla
                 }
             }
             else
