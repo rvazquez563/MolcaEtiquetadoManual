@@ -69,7 +69,7 @@ namespace MolcaEtiquetadoManual
 
             // ✅ NUEVO: Registrar servicio de super usuario
             services.AddSingleton<ISuperUsuarioService, SuperUsuarioService>();
-
+            services.AddSingleton<ProcessBlocker>();
             // Registrar servicio de fechas julianas
             services.AddSingleton<IJulianDateService, JulianDateService>();
 
@@ -109,7 +109,8 @@ namespace MolcaEtiquetadoManual
             services.AddSingleton<KioskManager>(sp =>
             {
                 var logService = sp.GetRequiredService<ILogService>();
-                return new KioskManager(logService);
+                var processBlocker = sp.GetRequiredService<ProcessBlocker>();
+                return new KioskManager(logService, processBlocker);
             });
 
             // Configurar servicio de impresión (sin cambios)

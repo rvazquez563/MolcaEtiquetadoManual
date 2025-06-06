@@ -18,6 +18,11 @@ namespace MolcaEtiquetadoManual.Core.Services
         private bool _kioskModeEnabled = false;
         private System.Windows.Threading.DispatcherTimer _watchdogTimer;
         private string _kioskPassword = "";
+        private readonly ProcessBlocker _processBlocker;
+
+        // ✅ NUEVO: Variables para el hook del teclado a nivel de sistema
+        private LowLevelKeyboardProc _keyboardProc = null;
+        private IntPtr _keyboardHookID = IntPtr.Zero;
 
         // APIs de Windows para controlar el sistema
         [DllImport("user32.dll")]
@@ -45,7 +50,38 @@ namespace MolcaEtiquetadoManual.Core.Services
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
-        // Constantes
+        // ✅ NUEVO: APIs para hook de teclado a nivel de sistema
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn,
+            IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        [DllImport("user32.dll")]
+        private static extern short GetKeyState(int nVirtKey);
+
+        // ✅ NUEVO: Constantes adicionales para el hook
+        private const int WH_KEYBOARD_LL = 13;
+        private const int WM_KEYDOWN = 0x0100;
+        private const int WM_SYSKEYDOWN = 0x0104;
+
+        // ✅ NUEVO: Códigos de teclas virtuales
+        private const int VK_LWIN = 0x5B;
+        private const int VK_RWIN = 0x5C;
+        private const int VK_TAB = 0x09;
+        private const int VK_MENU = 0x12; // Alt key
+        private const int VK_ESCAPE = 0x1B;
+        private const int VK_CONTROL = 0x11;
+
+        // Constantes existentes
         private const int SW_HIDE = 0;
         private const int SW_SHOW = 1;
         private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
@@ -66,10 +102,17 @@ namespace MolcaEtiquetadoManual.Core.Services
         private Window _mainWindow;
         private HwndSource _hwndSource;
 
-        public KioskManager(ILogService logService)
+        // ✅ NUEVO: Delegate para el hook del teclado
+        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        public KioskManager(ILogService logService, ProcessBlocker processBlocker = null)
         {
             _logService = logService;
+            _processBlocker = processBlocker;
             GenerarContraseñaKiosk();
+
+            // ✅ NUEVO: Inicializar el procedimiento del hook
+            _keyboardProc = HookCallback;
         }
 
         private void GenerarContraseñaKiosk()
@@ -94,6 +137,21 @@ namespace MolcaEtiquetadoManual.Core.Services
                 HideTaskbar();
                 DisableTaskManager();
                 SetupKeyInterceptor(mainWindow);
+
+                // Instalar hook de teclado a nivel de sistema
+                InstallSystemKeyboardHook();
+
+                // ✅ NUEVO: Habilitar bloqueador de procesos
+                if (_processBlocker != null)
+                {
+                    _processBlocker.EnableProcessBlocking();
+                    _logService.Information("Bloqueador de procesos activado");
+                }
+                else
+                {
+                    _logService.Warning("ProcessBlocker no disponible - continuando sin bloqueo de procesos");
+                }
+
                 StartWatchdog();
 
                 _logService.Information("=== MODO KIOSK ACTIVADO EXITOSAMENTE ===");
@@ -105,6 +163,203 @@ namespace MolcaEtiquetadoManual.Core.Services
             }
         }
 
+        public void DisableKioskMode()
+        {
+            try
+            {
+                _kioskModeEnabled = false;
+                _logService.Information("Desactivando modo Kiosk");
+
+                _watchdogTimer?.Stop();
+                _watchdogTimer = null;
+
+                // ✅ NUEVO: Deshabilitar bloqueador de procesos
+                if (_processBlocker != null)
+                {
+                    _processBlocker.DisableProcessBlocking();
+                    _logService.Information("Bloqueador de procesos desactivado");
+                }
+
+                // Desinstalar hook de teclado
+                UninstallSystemKeyboardHook();
+
+                UnregisterSystemHotKeys();
+                RemoveEventHooks();
+                RestoreTaskbar();
+                EnableTaskManager();
+
+                if (_mainWindow != null)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _mainWindow.Topmost = false;
+                        _mainWindow.WindowStyle = WindowStyle.SingleBorderWindow;
+                        _mainWindow.WindowState = WindowState.Normal;
+                        _mainWindow.ResizeMode = ResizeMode.CanResize;
+                    });
+                }
+
+                _logService.Information("Modo Kiosk desactivado correctamente");
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al desactivar modo Kiosk");
+            }
+        }
+
+        // ✅ NUEVO: Método para instalar hook de teclado a nivel de sistema
+        private void InstallSystemKeyboardHook()
+        {
+            try
+            {
+                _keyboardHookID = SetHook(_keyboardProc);
+                if (_keyboardHookID != IntPtr.Zero)
+                {
+                    _logService.Information("Hook de teclado a nivel de sistema instalado exitosamente");
+                }
+                else
+                {
+                    _logService.Warning("No se pudo instalar el hook de teclado a nivel de sistema");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error al instalar hook de teclado a nivel de sistema");
+            }
+        }
+
+        // ✅ NUEVO: Configurar el hook
+        private IntPtr SetHook(LowLevelKeyboardProc proc)
+        {
+            using (Process curProcess = Process.GetCurrentProcess())
+            using (ProcessModule curModule = curProcess.MainModule)
+            {
+                return SetWindowsHookEx(WH_KEYBOARD_LL, proc,
+                    GetModuleHandle(curModule.ModuleName), 0);
+            }
+        }
+
+        // ✅ NUEVO: Callback del hook para interceptar teclas a nivel de sistema
+        private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            try
+            {
+                if (nCode >= 0 && _kioskModeEnabled && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
+                {
+                    int vkCode = Marshal.ReadInt32(lParam);
+
+                    // ✅ MEJORADO: Bloqueo más agresivo de teclas del sistema
+                    if (ShouldBlockSystemKey(vkCode))
+                    {
+                        _logService.Debug("Tecla del sistema bloqueada por hook: {VirtualKey}", vkCode);
+                        return (IntPtr)1; // Bloquear la tecla
+                    }
+
+                    // ✅ NUEVO: Bloquear combinaciones específicas
+                    if (IsBlockedCombination(vkCode))
+                    {
+                        _logService.Debug("Combinación de teclas bloqueada por hook: {VirtualKey}", vkCode);
+                        return (IntPtr)1; // Bloquear la combinación
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logService.Error(ex, "Error en hook callback");
+            }
+
+            return CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
+        }
+
+        // ✅ NUEVO: Determinar si una tecla del sistema debe ser bloqueada
+        private bool ShouldBlockSystemKey(int vkCode)
+        {
+            switch (vkCode)
+            {
+                case VK_LWIN:       // Tecla Windows izquierda
+                case VK_RWIN:       // Tecla Windows derecha
+                    return true;
+
+                case VK_TAB:        // Tab (solo si Alt está presionado)
+                    return IsKeyPressed(VK_MENU); // Alt + Tab
+
+                case VK_ESCAPE:     // Escape (solo si Ctrl está presionado)
+                    return IsKeyPressed(VK_CONTROL); // Ctrl + Esc
+
+                default:
+                    return false;
+            }
+        }
+
+        // ✅ NUEVO: Verificar si una tecla está presionada
+        private bool IsKeyPressed(int vkCode)
+        {
+            return (GetKeyState(vkCode) & 0x8000) != 0;
+        }
+
+        // ✅ NUEVO: Verificar combinaciones específicas que deben ser bloqueadas
+        private bool IsBlockedCombination(int vkCode)
+        {
+            // Bloquear Ctrl+Alt+Del
+            if (vkCode == VK_DELETE && IsKeyPressed(VK_CONTROL) && IsKeyPressed(VK_MENU))
+            {
+                return true;
+            }
+
+            // Bloquear Ctrl+Shift+Esc (Task Manager)
+            if (vkCode == VK_ESCAPE && IsKeyPressed(VK_CONTROL) && IsKeyPressed(0x10)) // 0x10 = VK_SHIFT
+            {
+                return true;
+            }
+
+            // Permitir Ctrl+Shift+Alt+F12 para salida de emergencia
+            if (vkCode == (int)VK_F12 && IsKeyPressed(VK_CONTROL) &&
+                IsKeyPressed(0x10) && IsKeyPressed(VK_MENU))
+            {
+                // Esta combinación está permitida para salida de emergencia
+                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    SolicitarContraseñaParaSalir("Salida de emergencia (Ctrl+Shift+Alt+F12)");
+                }));
+                return true; // Bloquear para que no llegue a la aplicación
+            }
+
+            return false;
+        }
+
+        // ✅ MEJORADO: Método ShouldBlockKey actualizado para trabajar con el hook
+        private bool ShouldBlockKey(KeyEventArgs e)
+        {
+            var modifiers = e.KeyboardDevice.Modifiers;
+
+            // Alt+F4
+            if (modifiers.HasFlag(ModifierKeys.Alt) && e.Key == Key.F4)
+                return true;
+
+            // Alt+Tab
+            if (modifiers.HasFlag(ModifierKeys.Alt) && e.Key == Key.Tab)
+                return true;
+
+            // Tecla Windows (cualquier combinación)
+            if (modifiers.HasFlag(ModifierKeys.Windows))
+                return true;
+
+            // Ctrl+Escape
+            if (modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Escape)
+                return true;
+
+            // Ctrl+Shift+Escape
+            if (modifiers.HasFlag(ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.Escape)
+                return true;
+
+            // Ctrl+Alt+Delete
+            if (modifiers.HasFlag(ModifierKeys.Control | ModifierKeys.Alt) && e.Key == Key.Delete)
+                return true;
+
+            return false;
+        }
+
+        // Resto de métodos existentes sin cambios...
         private void RegisterSystemHotKeys()
         {
             try
@@ -225,6 +480,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             }
         }
 
+        // Resto de métodos existentes...
         private void ConfigureMainWindow(Window mainWindow)
         {
             try
@@ -368,31 +624,6 @@ namespace MolcaEtiquetadoManual.Core.Services
             }
         }
 
-        private bool ShouldBlockKey(KeyEventArgs e)
-        {
-            var modifiers = e.KeyboardDevice.Modifiers;
-
-            if (modifiers.HasFlag(ModifierKeys.Alt) && e.Key == Key.F4)
-                return true;
-
-            if (modifiers.HasFlag(ModifierKeys.Alt) && e.Key == Key.Tab)
-                return true;
-
-            if (modifiers.HasFlag(ModifierKeys.Windows))
-                return true;
-
-            if (modifiers.HasFlag(ModifierKeys.Control) && e.Key == Key.Escape)
-                return true;
-
-            if (modifiers.HasFlag(ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.Escape)
-                return true;
-
-            if (modifiers.HasFlag(ModifierKeys.Control | ModifierKeys.Alt) && e.Key == Key.Delete)
-                return true;
-
-            return false;
-        }
-
         private void StartWatchdog()
         {
             try
@@ -449,37 +680,22 @@ namespace MolcaEtiquetadoManual.Core.Services
             }
         }
 
-        public void DisableKioskMode()
+       
+        // ✅ NUEVO: Desinstalar hook de teclado
+        private void UninstallSystemKeyboardHook()
         {
             try
             {
-                _kioskModeEnabled = false;
-                _logService.Information("Desactivando modo Kiosk");
-
-                _watchdogTimer?.Stop();
-                _watchdogTimer = null;
-
-                UnregisterSystemHotKeys();
-                RemoveEventHooks();
-                RestoreTaskbar();
-                EnableTaskManager();
-
-                if (_mainWindow != null)
+                if (_keyboardHookID != IntPtr.Zero)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        _mainWindow.Topmost = false;
-                        _mainWindow.WindowStyle = WindowStyle.SingleBorderWindow;
-                        _mainWindow.WindowState = WindowState.Normal;
-                        _mainWindow.ResizeMode = ResizeMode.CanResize;
-                    });
+                    UnhookWindowsHookEx(_keyboardHookID);
+                    _keyboardHookID = IntPtr.Zero;
+                    _logService.Information("Hook de teclado a nivel de sistema desinstalado");
                 }
-
-                _logService.Information("Modo Kiosk desactivado correctamente");
             }
             catch (Exception ex)
             {
-                _logService.Error(ex, "Error al desactivar modo Kiosk");
+                _logService.Error(ex, "Error al desinstalar hook de teclado");
             }
         }
 
@@ -563,16 +779,14 @@ namespace MolcaEtiquetadoManual.Core.Services
         public string GetCurrentKioskPassword() => _kioskPassword;
     }
 
-    /// <summary>
-    /// ✅ CORREGIDO: Ventana de diálogo con mejor manejo del PasswordBox
-    /// </summary>
+    // KioskPasswordDialog permanece igual...
     public partial class KioskPasswordDialog : Window
     {
         private readonly string _correctPassword;
         private readonly Window _parentWindow;
         private System.Windows.Controls.PasswordBox _passwordBox;
         private bool _isClosing = false;
-        private bool _buttonClicked = false; // ✅ NUEVO: Flag para evitar interferencia del timer
+        private bool _buttonClicked = false;
 
         public KioskPasswordDialog(string correctPassword, Window parentWindow)
         {
@@ -590,12 +804,9 @@ namespace MolcaEtiquetadoManual.Core.Services
             this.ShowInTaskbar = false;
             this.Owner = parentWindow;
 
-            // ✅ REMOVIDO: _focusTimer que causaba problemas
             this.Loaded += (s, e) => _passwordBox?.Focus();
             this.Closing += (s, e) => { _isClosing = true; };
         }
-
-        // ✅ REMOVIDO: FocusTimer_Tick y EnsureFocus que causaban problemas
 
         private void InitializeComponent()
         {
@@ -617,7 +828,6 @@ namespace MolcaEtiquetadoManual.Core.Services
             Grid.SetRow(title, 0);
             grid.Children.Add(title);
 
-            // ✅ CORREGIDO: PasswordBox con mejor manejo
             _passwordBox = new System.Windows.Controls.PasswordBox
             {
                 Name = "PasswordBox",
@@ -632,8 +842,7 @@ namespace MolcaEtiquetadoManual.Core.Services
 
             var helpText = new System.Windows.Controls.TextBlock
             {
-                Text = $"📝 Coloque la contraseña correcta "
-                       ,
+                Text = "📝 Ingrese la contraseña correcta para continuar",
                 FontSize = 11,
                 Foreground = System.Windows.Media.Brushes.DarkBlue,
                 Margin = new Thickness(20, 5, 20, 10),
@@ -643,7 +852,6 @@ namespace MolcaEtiquetadoManual.Core.Services
             Grid.SetRow(helpText, 2);
             grid.Children.Add(helpText);
 
-            // ✅ CORREGIDO: Botones con mejor manejo del click
             var buttonPanel = new System.Windows.Controls.StackPanel
             {
                 Orientation = System.Windows.Controls.Orientation.Horizontal,
@@ -660,7 +868,6 @@ namespace MolcaEtiquetadoManual.Core.Services
                 FontSize = 12
             };
 
-            // ✅ CORREGIDO: Click de cancelar simplificado
             cancelButton.Click += (s, e) =>
             {
                 _buttonClicked = true;
@@ -679,7 +886,6 @@ namespace MolcaEtiquetadoManual.Core.Services
                 Foreground = System.Windows.Media.Brushes.White
             };
 
-            // ✅ CORREGIDO: Click de OK simplificado y directo
             okButton.Click += (s, e) =>
             {
                 _buttonClicked = true;
@@ -695,7 +901,6 @@ namespace MolcaEtiquetadoManual.Core.Services
 
             this.Content = grid;
 
-            // ✅ SIMPLIFICADO: Eventos del PasswordBox sin timer agresivo
             _passwordBox.Loaded += (s, e) =>
             {
                 _passwordBox.Focus();
@@ -717,8 +922,6 @@ namespace MolcaEtiquetadoManual.Core.Services
                 }
             };
 
-            // ✅ REMOVIDO: LostFocus event que causaba problemas con los botones
-
             this.Activated += (s, e) =>
             {
                 if (!_isClosing && !_buttonClicked)
@@ -728,12 +931,10 @@ namespace MolcaEtiquetadoManual.Core.Services
             };
         }
 
-        // ✅ CORREGIDO: Método ValidatePassword mejorado
         private void ValidatePassword(string enteredPassword)
         {
             try
             {
-                // Asegurar que tenemos una contraseña válida para comparar
                 if (string.IsNullOrEmpty(enteredPassword))
                 {
                     ShowPasswordError("No se ingresó ninguna contraseña", enteredPassword);
@@ -755,28 +956,23 @@ namespace MolcaEtiquetadoManual.Core.Services
                 MessageBox.Show($"Error al validar contraseña: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
 
-                // Limpiar y reenfocar
                 _passwordBox.Password = "";
-                _buttonClicked = false; // ✅ Resetear flag
+                _buttonClicked = false;
                 _passwordBox.Focus();
             }
         }
 
-        // ✅ CORREGIDO: Método para mostrar errores sin timer
         private void ShowPasswordError(string mensaje, string enteredPassword)
         {
             var errorMsg = $"❌ {mensaje}\n\n" +
                           $"Ingresada: '{enteredPassword}'\n" +
-                          //$"Esperada: '{_correctPassword}'\n" +
-                          //$"Formato: DDMMYY para {DateTime.Now:dd/MM/yyyy}\n\n" +
                           $"Intente nuevamente.";
 
             MessageBox.Show(errorMsg, "Error de Autenticación",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
 
-            // Limpiar campo y volver a enfocar
             _passwordBox.Password = "";
-            _buttonClicked = false; // ✅ Resetear flag
+            _buttonClicked = false;
             _passwordBox.Focus();
         }
 
