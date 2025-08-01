@@ -36,7 +36,16 @@ namespace MolcaEtiquetadoManual.Data.Repositories
 
             if (ordenExistente != null)
             {
-                // Comprobar si está dentro del rango de fechas
+                //quiero que verifique en la bd el tema de las fechas, si la orden existe y está dentro del rango de fechas permitido
+                var ordenExistente1 = _context.OrdenesProduccion.FirstOrDefault(o => o.DUN14 == dun14 && o.FechaProduccionInicio <= fechaActual && o.FechaProduccionFin >= fechaActual);
+                if (ordenExistente1 != null)
+                {
+                    // La orden existe y está dentro del rango de fechas permitido
+                    return ordenExistente1;
+                }
+                // Comprobar si está dentro del rango de fechas 
+                // si encontro una orden con el DUN14 pero no está dentro del rango de fechas, lance una excepción con un mensaje específico
+                // La orden existe pero no está dentro del rango de fechas permitido
                 if (fechaActual >= ordenExistente.FechaProduccionInicio.Date &&
                     fechaActual <= ordenExistente.FechaProduccionFin.Date)
                 {

@@ -305,7 +305,10 @@ namespace MolcaEtiquetadoManual.Core.Services
             {
                 return true;
             }
-
+            if (vkCode ==  (int)VK_F4 && IsKeyPressed(VK_MENU))
+            {
+                return true;
+            }
             // Bloquear Ctrl+Shift+Esc (Task Manager)
             if (vkCode == VK_ESCAPE && IsKeyPressed(VK_CONTROL) && IsKeyPressed(0x10)) // 0x10 = VK_SHIFT
             {
