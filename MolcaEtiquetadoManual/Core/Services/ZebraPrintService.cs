@@ -169,7 +169,7 @@ namespace MolcaEtiquetadoManual.Core.Services
             string lote2 = $"{etiqueta.DOCO}{etiqueta.SEC}";  // Lote 2 - FN4
             string descripcion = orden.Descripcion;  // Descripción - FN5
             string codigoJDE = orden.NumeroArticulo.PadLeft(8, '0');  // Código JDE - FN6
-            string cantidadBultos = $"{orden.CantidadPorPallet} Bultos";  // Bultos - FN7
+            string cantidadBultos = $"{etiqueta.SOQS} Bultos";  // Bultos - FN7
             string codBarrasH = codigoBarras;  // Código de barras horizontal - FN8
             string codBarrasV = etiqueta.LOTN;  // Código de barras vertical - FN9
 
